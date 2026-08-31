@@ -286,3 +286,104 @@ a { color: var(--primary); text-decoration: none; }
   }
 }
 
+/* ==========================================
+   PREMIUM MULTI-COLOR ICON SUITE
+   ========================================== */
+
+/* 1. Sidebar Brand & Logo */
+.sidebar-logo-icon {
+  color: #4361ee !important;
+  filter: drop-shadow(0 2px 4px rgba(67, 97, 238, 0.3));
+}
+
+/* 2. Sidebar Menu Icons - Distinct Premium Colors */
+.sidebar-link i.fa-chart-line { color: #4361ee !important; }       /* Dashboard: Blue */
+.sidebar-link i.fa-copy { color: #7209b7 !important; }             /* All Documents: Indigo */
+.sidebar-link i.fa-graduation-cap { color: #8338ec !important; }   /* College: Purple */
+.sidebar-link i.fa-school { color: #ff006e !important; }           /* High School: Pink-Red */
+.sidebar-link i.fa-book-open { color: #3a0ca3 !important; }        /* Semester Records: Royal Blue */
+.sidebar-link i.fa-map { color: #38b000 !important; }              /* Land Records: Emerald Green */
+.sidebar-link i.fa-certificate { color: #ff5400 !important; }      /* Certificates: Flame Orange */
+.sidebar-link i.fa-star { color: #ffc300 !important; }             /* Favorites: Gold Amber */
+.sidebar-link i.fa-user { color: #00f5d4 !important; }             /* Profile: Bright Teal */
+.sidebar-link i.fa-sign-out-alt { color: #e63946 !important; }     /* Logout: Coral Red */
+
+/* 3. Action Buttons & Table Icons - Modern & Vibrant */
+.btn-icon-action {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  background: transparent !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  margin: 0 2px !important;
+  padding: 0 !important;
+}
+
+.btn-icon-action:hover {
+  background: rgba(0, 0, 0, 0.08) !important;
+  transform: scale(1.18) translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='dark'] .btn-icon-action:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Individual Icon Action Colorings */
+.btn-icon-action i.fa-eye { color: #00bcd4 !important; }           /* View: Cyan */
+.btn-icon-action i.fa-pencil { color: #ff9800 !important; }        /* Edit: Orange */
+.btn-icon-action i.fa-download { color: #4caf50 !important; }      /* Download: Green */
+.btn-icon-action i.fa-print { color: #9c27b0 !important; }         /* Print: Violet */
+.btn-icon-action i.fa-link { color: #2196f3 !important; }          /* Open Link: Blue */
+.btn-icon-action i.fa-copy { color: #673ab7 !important; }          /* Copy Link: Deep Purple */
+.btn-icon-action i.fa-trash { color: #e91e63 !important; }         /* Delete: Magenta Red */
+
+/* Gold highlight for favorites */
+.btn-icon-action.fav-btn i.fa-star {
+  color: #ccc !important;
+  transition: color 0.2s;
+}
+.btn-icon-action.fav-btn.active i.fa-star,
+.btn-icon-action.fav-btn:hover i.fa-star {
+  color: #ffc107 !important;
+  text-shadow: 0 0 4px rgba(255, 193, 7, 0.4);
+}
+
+/* 4. Top Navbar Actions */
+#themeIcon.fa-sun {
+  color: #ffb703 !important;
+  filter: drop-shadow(0 0 4px rgba(255, 183, 3, 0.5));
+}
+#themeIcon.fa-moon {
+  color: #9d4edd !important;
+  filter: drop-shadow(0 0 4px rgba(157, 78, 221, 0.3));
+}
+.navbar-search i {
+  color: #4361ee !important;
+}
+
+/* 5. Cards & Headings */
+.card-header h5 i {
+  color: #4361ee !important;
+}
+.quick-action-btn i {
+  margin-right: 6px;
+}
+.quick-action-btn:first-child i { color: #4fff8f !important; }
+.quick-action-btn:last-child i { color: #4cc9f0 !important; }
+
+/* 6. Form Field Icons & Highlights */
+.form-icon-prefix {
+  color: #4361ee !important;
+}
+.strength-meter span {
+  transition: all 0.3s ease;
+}
+
+

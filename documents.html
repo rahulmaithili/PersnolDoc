@@ -416,38 +416,6 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="assets/js/config.js"></script>
-<script src="assets/js/api.js"></script>
-<script src="assets/js/auth.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    if (typeof checkAuth === 'function') checkAuth();
-    if (typeof initTheme === 'function') initTheme();
-    if (typeof initUserAvatar === 'function') initUserAvatar();
-    initSidebarLogic();
-    if (typeof initTooltips === 'function') initTooltips();
-    
-    // populate years
-    const currentYear = new Date().getFullYear();
-    const filterYear = document.getElementById('filterYear');
-    const fYear = document.getElementById('fYear');
-    if (filterYear) {
-        for(let y=currentYear; y>=2010; y--) {
-            filterYear.innerHTML += `<option value="${y}">${y}</option>`;
-        }
-    }
-    if (fYear) {
-        for(let y=currentYear; y>=1990; y--) {
-            fYear.innerHTML += `<option value="${y}">${y}</option>`;
-        }
-    }
-  });
-
-  });
-</script>
-
 <!-- ===== THEME PANEL ===== -->
 <div class="theme-panel-overlay" id="themePanelOverlay" onclick="closeThemePanel()"></div>
 <div class="theme-panel" id="themePanel">
@@ -484,10 +452,29 @@
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/documents.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    initTheme();
-    initUserAvatar();
-    initSidebar();
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof checkAuth === 'function') checkAuth();
+    if (typeof initTheme === 'function') initTheme();
+    if (typeof initUserAvatar === 'function') initUserAvatar();
+    if (typeof initSidebar === 'function') initSidebar();
+    if (typeof initTooltips === 'function') initTooltips();
+    
+    // populate years
+    const currentYear = new Date().getFullYear();
+    const filterYear = document.getElementById('filterYear');
+    const fYear = document.getElementById('fYear');
+    if (filterYear) {
+        filterYear.innerHTML = '<option value="">All Years</option>';
+        for(let y=currentYear; y>=2010; y--) {
+            filterYear.innerHTML += `<option value="${y}">${y}</option>`;
+        }
+    }
+    if (fYear) {
+        fYear.innerHTML = '<option value="">Select Year</option>';
+        for(let y=currentYear; y>=1990; y--) {
+            fYear.innerHTML += `<option value="${y}">${y}</option>`;
+        }
+    }
   });
 </script>
 </body>

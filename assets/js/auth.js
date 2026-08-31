@@ -108,7 +108,7 @@ async function updateProfile(name, profile_photo) {
   if (name !== undefined) params.name = name;
   if (profile_photo !== undefined) params.profile_photo = profile_photo;
   
-  const response = await apiRequest('updateProfile', params, 'POST');
+  const response = await apiRequest('updateProfile', { data: params }, 'POST');
   hideLoading();
   
   if (response.success) {

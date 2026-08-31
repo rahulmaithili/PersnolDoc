@@ -358,6 +358,19 @@ function initSidebar() {
       link.classList.remove('active');
     }
   });
+
+  // Set active mobile bottom nav item
+  const mobDashboard = document.getElementById('mNavDashboard');
+  const mobDocuments = document.getElementById('mNavDocuments');
+  const mobProfile = document.getElementById('mNavProfile');
+
+  if (mobDashboard) mobDashboard.classList.remove('active');
+  if (mobDocuments) mobDocuments.classList.remove('active');
+  if (mobProfile) mobProfile.classList.remove('active');
+
+  if (currentPath === 'dashboard.html' && mobDashboard) mobDashboard.classList.add('active');
+  if (currentPath === 'documents.html' && mobDocuments) mobDocuments.classList.add('active');
+  if (currentPath === 'profile.html' && mobProfile) mobProfile.classList.add('active');
 }
 
 

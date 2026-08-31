@@ -273,10 +273,10 @@ function initAddEditModal() {
 window.openAddModal = function() {
   clearForm();
   if (document.getElementById('fDocId')) document.getElementById('fDocId').value = '';
-  const titleEl = document.getElementById('addEditModalTitle');
+  const titleEl = document.getElementById('docFormModalTitle');
   if (titleEl) titleEl.textContent = 'Add Document';
   
-  const modalEl = document.getElementById('addEditModal');
+  const modalEl = document.getElementById('docFormModal');
   if (modalEl) {
     const bsModal = new bootstrap.Modal(modalEl);
     bsModal.show();
@@ -291,10 +291,10 @@ window.openEditModal = function(docId) {
   }
   
   populateEditForm(doc);
-  const titleEl = document.getElementById('addEditModalTitle');
+  const titleEl = document.getElementById('docFormModalTitle');
   if (titleEl) titleEl.textContent = 'Edit Document';
   
-  const modalEl = document.getElementById('addEditModal');
+  const modalEl = document.getElementById('docFormModal');
   if (modalEl) {
     const bsModal = new bootstrap.Modal(modalEl);
     bsModal.show();
@@ -302,7 +302,7 @@ window.openEditModal = function(docId) {
 };
 
 window.closeAddEditModal = function() {
-  const modalEl = document.getElementById('addEditModal');
+  const modalEl = document.getElementById('docFormModal');
   if (modalEl) {
     const bsModal = bootstrap.Modal.getInstance(modalEl);
     if (bsModal) bsModal.hide();

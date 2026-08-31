@@ -115,7 +115,7 @@ function handleRequest(e, method) {
         response = forgotPassword(body.email);
         break;
       case 'resetPassword':
-        response = resetPassword(body.token, body.newPassword);
+        response = resetPassword(body.email, body.otp, body.newPassword);
         break;
       case 'logout':
         const tokenToLogout = params.token || body.token || (e.headers && (e.headers['Authorization'] || e.headers['authorization'])).replace('Bearer ', '');
@@ -172,4 +172,14 @@ function createJsonResponse(data, statusCode = 200) {
   // In a real proxy setup we could handle this, but here we just return JSON with success flag.
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Diagnostic function to test email sending and trigger authorization popup.
+ * Select 'testEmail' in the Apps Script editor and click 'Run'.
+ */
+function testEmail() {
+  const email = Session.getActiveUser().getEmail();
+  MailApp.sendEmail(email, "DocVault Test Email", "If you receive this email, Gmail authorization is working successfully!");
+  Logger.log("Test email successfully sent to: " + email);
 }

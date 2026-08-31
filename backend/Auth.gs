@@ -138,13 +138,14 @@ function forgotPassword(email) {
   }
   
   if (!userExists) {
-    return jsonResponse(true, 'If email exists, reset link sent'); // Generic message for security
+    return jsonResponse(true, 'If email exists, OTP sent');
   }
   
-  const token = generateToken();
-  const hashedToken = hashString(token);
+  // Generate 6-digit numeric OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedOtp = hashString(otp);
   const now = new Date();
-  const expiry = new Date(now.getTime() + (60 * 60 * 1000)); // 1 hour
+  const expiry = new Date(now.getTime() + (10 * 60 * 1000)); // 10 minutes
   
   const lock = LockService.getScriptLock();
   try {
@@ -153,28 +154,82 @@ function forgotPassword(email) {
     const newReset = {
       id: generateId(),
       email: email.toLowerCase(),
-      token_hash: hashedToken,
+      token_hash: hashedOtp,
       expiry: expiry.toISOString(),
       used: false,
       created_at: now.toISOString()
     };
     resetSheet.appendRow(objectToRow(resetSheet.getDataRange().getValues()[0], newReset));
     
-    // In real usage, send email here: MailApp.sendEmail(email, "Password Reset", "Your reset token is: " + token);
-    Logger.log("Password reset token for " + email + ": " + token);
+    // Send professional HTML email using Apps Script MailApp
+    const subject = "DocVault - Password Reset Verification OTP";
+    const currentYear = new Date().getFullYear();
+    const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f5f7; margin: 0; padding: 0; color: #2d3748; }
+        .email-container { max-width: 580px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .email-header { background: linear-gradient(135deg, #4361ee, #1e2139); padding: 30px; text-align: center; color: #ffffff; }
+        .email-header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; letter-spacing: 0.5px; }
+        .email-body { padding: 40px 35px; line-height: 1.6; }
+        .email-body h2 { font-size: 1.25rem; font-weight: 600; color: #1a202c; margin-top: 0; margin-bottom: 16px; }
+        .email-body p { margin-bottom: 24px; color: #4a5568; font-size: 0.95rem; }
+        .otp-container { background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 24px; text-align: center; margin: 30px 0; }
+        .otp-code { font-size: 2.2rem; font-weight: 800; letter-spacing: 6px; color: #4361ee; font-family: monospace; line-height: 1; }
+        .otp-expiry { font-size: 0.78rem; color: #e53e3e; margin-top: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .email-footer { background-color: #f8fafc; padding: 25px; text-align: center; border-top: 1px solid #edf2f7; font-size: 0.78rem; color: #a0aec0; }
+        .email-footer p { margin: 5px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="email-header">
+          <h1>DocVault</h1>
+        </div>
+        <div class="email-body">
+          <h2>Password Reset Request</h2>
+          <p>Hello,</p>
+          <p>We received a request to reset your DocVault account password. Please use the following 6-digit verification OTP to complete the password reset process:</p>
+          
+          <div class="otp-container">
+            <div class="otp-code">${otp}</div>
+            <div class="otp-expiry">Valid for 10 minutes only</div>
+          </div>
+          
+          <p>If you did not request this change, you can safely ignore this email. Your password will remain secure and unchanged.</p>
+          <p>Best regards,<br><strong>DocVault Security Team</strong></p>
+        </div>
+        <div class="email-footer">
+          <p>This is an automated security email. Please do not reply directly to this message.</p>
+          <p>&copy; ${currentYear} DocVault. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      htmlBody: htmlBody
+    });
     
-    return jsonResponse(true, 'If email exists, reset link sent', { resetToken: token }); // Including token for dev mode
+    Logger.log("Password reset OTP for " + email + ": " + otp);
+    return jsonResponse(true, 'Verification OTP sent to your email.');
   } catch (e) {
-    return jsonResponse(false, 'Failed to process request');
+    return jsonResponse(false, 'Failed to process request: ' + e.toString());
   } finally {
     lock.releaseLock();
   }
 }
 
-function resetPassword(token, newPassword) {
-  if (!token || !newPassword) return jsonResponse(false, 'Token and new password required');
+function resetPassword(email, otp, newPassword) {
+  if (!email || !otp || !newPassword) return jsonResponse(false, 'Email, OTP, and new password required');
   
-  const hashedToken = hashString(token);
+  const hashedOtp = hashString(otp);
   const lock = LockService.getScriptLock();
   
   try {
@@ -185,19 +240,17 @@ function resetPassword(token, newPassword) {
     const now = new Date();
     
     let resetRowIdx = -1;
-    let email = '';
     
     for (let i = 1; i < resetData.length; i++) {
       const row = rowToObject(resetHeaders, resetData[i]);
-      if (row.token_hash === hashedToken && !row.used && new Date(row.expiry) > now) {
+      if (row.email.toLowerCase() === email.toLowerCase() && row.token_hash === hashedOtp && !row.used && new Date(row.expiry) > now) {
         resetRowIdx = i + 1;
-        email = row.email;
         break;
       }
     }
     
     if (resetRowIdx === -1) {
-      return jsonResponse(false, 'Invalid or expired reset token');
+      return jsonResponse(false, 'Invalid or expired OTP');
     }
     
     const userSheet = getSheetByName('Users');
@@ -206,7 +259,7 @@ function resetPassword(token, newPassword) {
     let userRowIdx = -1;
     
     for (let i = 1; i < userData.length; i++) {
-      if (userData[i][userHeaders.indexOf('email')].toLowerCase() === email) {
+      if (userData[i][userHeaders.indexOf('email')].toLowerCase() === email.toLowerCase()) {
         userRowIdx = i + 1;
         break;
       }
@@ -220,12 +273,12 @@ function resetPassword(token, newPassword) {
     userSheet.getRange(userRowIdx, userHeaders.indexOf('password_hash') + 1).setValue(hashString(newPassword));
     userSheet.getRange(userRowIdx, userHeaders.indexOf('updated_at') + 1).setValue(now.toISOString());
     
-    // Mark token as used
+    // Mark OTP as used
     resetSheet.getRange(resetRowIdx, resetHeaders.indexOf('used') + 1).setValue(true);
     
     return jsonResponse(true, 'Password successfully reset');
   } catch (e) {
-    return jsonResponse(false, 'Error resetting password');
+    return jsonResponse(false, 'Error resetting password: ' + e.toString());
   } finally {
     lock.releaseLock();
   }

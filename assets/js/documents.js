@@ -388,6 +388,9 @@ async function submitDocumentForm() {
     let drive_file_id = '';
     let document_url = docUrlInput ? docUrlInput.value.trim() : '';
 
+    let file_name = '';
+    let file_type = '';
+
     if (isUploadMode && fileInput && fileInput.files.length > 0) {
       const file = fileInput.files[0];
       
@@ -424,6 +427,8 @@ async function submitDocumentForm() {
 
       drive_file_id = uploadResponse.data.fileId;
       document_url = uploadResponse.data.fileUrl;
+      file_name = file.name;
+      file_type = file.type;
       
       setTimeout(() => {
         if (progressWrap) progressWrap.classList.add('d-none');
@@ -449,7 +454,9 @@ async function submitDocumentForm() {
       description,
       favorite,
       document_url,
-      drive_file_id
+      drive_file_id,
+      file_name,
+      file_type
     };
 
     const action = id ? 'updateDocument' : 'addDocument';
@@ -627,7 +634,7 @@ window.openViewModal = async function(docId) {
   if (previewContainer) {
     if (doc.drive_file_id) {
       previewContainer.innerHTML = `
-        <iframe src="https://docs.google.com/viewer?srcid=${doc.drive_file_id}&pid=explorer&efh=false&a=v&chrome=false&embedded=true" style="width:100%; height:450px; border:none; border-radius:6px;"></iframe>
+        <iframe src="https://drive.google.com/file/d/${doc.drive_file_id}/preview" style="width:100%; height:450px; border:none; border-radius:6px;"></iframe>
       `;
     } else if (doc.document_url) {
       const url = doc.document_url;

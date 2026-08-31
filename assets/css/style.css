@@ -57,9 +57,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); co
 a { color: var(--primary); text-decoration: none; }
 
 /* Sidebar */
-.sidebar { position:fixed; left:0; top:0; height:100vh; width:var(--sidebar-width); background:var(--sidebar-bg); display:flex; flex-direction:column; transition:width 0.3s ease; z-index:1040; overflow:hidden; }
+.sidebar { position:fixed; left:0; top:0; height:100vh; width:var(--sidebar-width); background:var(--sidebar-bg); display:flex; flex-direction:column; transition:width 0.3s ease; z-index:1040; overflow:visible; }
 .sidebar-collapsed .sidebar { width:var(--sidebar-collapsed-width); }
-.sidebar-header { position:relative; height:60px; display:flex; align-items:center; padding:0 16px; gap:10px; border-bottom:1px solid rgba(255,255,255,0.07); white-space:nowrap; overflow:hidden; }
+.sidebar-header { position:relative; height:60px; display:flex; align-items:center; padding:0 16px; gap:10px; border-bottom:1px solid rgba(255,255,255,0.07); white-space:nowrap; overflow:visible; }
 .sidebar-logo-icon { font-size:1.4rem; color:var(--primary); flex-shrink:0; }
 .sidebar-logo-text { font-size:1.1rem; font-weight:700; color:#fff; transition:opacity 0.2s,width 0.3s; }
 .sidebar-collapsed .sidebar-logo-text { opacity:0; width:0; overflow:hidden; }

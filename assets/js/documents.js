@@ -37,35 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Sidebar initialization (duplicate from dashboard for standalone execution)
-function initSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebarToggleBtn');
-  const overlay = document.getElementById('sidebarOverlay');
-  
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('sidebar-collapsed');
-    });
-  }
-  
-  if (overlay) {
-    overlay.addEventListener('click', () => {
-      document.body.classList.remove('sidebar-collapsed');
-    });
-  }
-  
-  const currentPath = window.location.pathname;
-  const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach(item => {
-    const href = item.getAttribute('href');
-    if (href && currentPath.includes(href)) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
-}
+
 
 function readURLParams() {
   const params = new URLSearchParams(window.location.search);

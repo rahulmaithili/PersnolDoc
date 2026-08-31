@@ -25,36 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function initSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const toggleBtn = document.getElementById('sidebarToggleBtn');
-  const overlay = document.getElementById('sidebarOverlay');
-  
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('sidebar-collapsed');
-    });
-  }
-  
-  if (overlay) {
-    overlay.addEventListener('click', () => {
-      document.body.classList.remove('sidebar-collapsed');
-    });
-  }
-  
-  // Set active nav item
-  const currentPath = window.location.pathname;
-  const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach(item => {
-    const href = item.getAttribute('href');
-    if (href && currentPath.includes(href)) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
-}
-
 async function loadDashboardStats() {
   try {
     const response = await apiRequest('getDocuments', { pageSize: 1000 }, 'GET');
@@ -69,7 +39,8 @@ async function loadDashboardStats() {
         land: 0,
         certs: 0,
         favs: 0,
-        month: 0
+        month: 0,
+        others: 0
       };
       
       const currentMonth = new Date().getMonth();
@@ -81,6 +52,8 @@ async function loadDashboardStats() {
         else if (doc.category === 'High School' || doc.category === 'Intermediate') counts.school++;
         else if (doc.category === 'Land Records') counts.land++;
         else if (doc.category === 'Certificates') counts.certs++;
+        else if (doc.category === 'Others') counts.others++;
+        else counts.others++; // Fallback
         
         // Fav counts
         if (doc.favorite) counts.favs++;
@@ -102,6 +75,7 @@ async function loadDashboardStats() {
       countUp(document.getElementById('stat-certs'), counts.certs, 1000);
       countUp(document.getElementById('stat-favs'), counts.favs, 1000);
       countUp(document.getElementById('stat-month'), counts.month, 1000);
+      countUp(document.getElementById('stat-others'), counts.others, 1000);
     }
   } catch (err) {
     console.error('Failed to load stats', err);

@@ -7,7 +7,8 @@ const state = {
   pageSize: CONFIG.PAGE_SIZE,
   filters: {},
   searchQuery: '',
-  loading: false
+  loading: false,
+  viewMode: localStorage.getItem('dv_view_mode') || 'list'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSearchDebounce();
     initFilterForm();
     initAddEditModal();
+    initViewMode();
     
     loadDocuments();
   }
@@ -49,18 +51,47 @@ function readURLParams() {
 async function loadDocuments() {
   state.loading = true;
   const tbody = document.getElementById('documentsBody');
-  if (tbody) {
-    tbody.innerHTML = Array(5).fill(`
-      <tr class="skeleton-row">
-        <td><div class="skeleton skeleton-text" style="width:20px"></div></td>
-        <td><div class="skeleton skeleton-text" style="width:150px"></div></td>
-        <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
-        <td><div class="skeleton skeleton-text" style="width:100px"></div></td>
-        <td><div class="skeleton skeleton-text" style="width:40px"></div></td>
-        <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
-        <td><div class="skeleton skeleton-text" style="width:120px"></div></td>
-      </tr>
-    `).join('');
+  const gridContainer = document.getElementById('documentsGrid');
+  const listView = document.getElementById('listViewContainer');
+  const gridView = document.getElementById('gridViewContainer');
+  
+  if (state.viewMode === 'grid') {
+    if (listView) listView.classList.add('d-none');
+    if (gridView) gridView.classList.remove('d-none');
+    if (gridContainer) {
+      gridContainer.innerHTML = Array(8).fill(`
+        <div class="col">
+          <div class="card h-100 border-0 shadow-sm">
+            <div class="skeleton" style="height: 130px; border-radius: 8px 8px 0 0;"></div>
+            <div class="card-body p-3">
+              <div class="skeleton skeleton-text" style="width: 50px; height: 16px; margin-bottom: 8px;"></div>
+              <div class="skeleton skeleton-text" style="width: 150px; height: 20px; margin-bottom: 8px;"></div>
+              <div class="skeleton skeleton-text" style="width: 100px; height: 14px; margin-bottom: 8px;"></div>
+              <div class="d-flex justify-content-between mt-3 pt-2 border-top">
+                <div class="skeleton skeleton-text" style="width: 60px; height: 12px; margin-bottom: 0;"></div>
+                <div class="skeleton skeleton-text" style="width: 20px; height: 20px; margin-bottom: 0;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+  } else {
+    if (listView) listView.classList.remove('d-none');
+    if (gridView) gridView.classList.add('d-none');
+    if (tbody) {
+      tbody.innerHTML = Array(5).fill(`
+        <tr class="skeleton-row">
+          <td><div class="skeleton skeleton-text" style="width:20px"></div></td>
+          <td><div class="skeleton skeleton-text" style="width:150px"></div></td>
+          <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+          <td><div class="skeleton skeleton-text" style="width:100px"></div></td>
+          <td><div class="skeleton skeleton-text" style="width:40px"></div></td>
+          <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+          <td><div class="skeleton skeleton-text" style="width:120px"></div></td>
+        </tr>
+      `).join('');
+    }
   }
   
   let action = 'getDocuments';
@@ -98,55 +129,117 @@ async function loadDocuments() {
 
 function renderDocumentsTable(docs) {
   const tbody = document.getElementById('documentsBody');
+  const gridContainer = document.getElementById('documentsGrid');
   const emptyEl = document.getElementById('docsEmpty');
-  if (!tbody) return;
+  
+  const listView = document.getElementById('listViewContainer');
+  const gridView = document.getElementById('gridViewContainer');
+  
+  if (state.viewMode === 'grid') {
+    if (listView) listView.classList.add('d-none');
+    if (gridView) gridView.classList.remove('d-none');
+  } else {
+    if (listView) listView.classList.remove('d-none');
+    if (gridView) gridView.classList.add('d-none');
+  }
   
   if (docs.length === 0) {
-    tbody.innerHTML = '';
+    if (tbody) tbody.innerHTML = '';
+    if (gridContainer) gridContainer.innerHTML = '';
     if (emptyEl) emptyEl.classList.remove('d-none');
     return;
   }
   
   if (emptyEl) emptyEl.classList.add('d-none');
   
-  tbody.innerHTML = docs.map((doc, index) => {
-    const title = doc.title || 'Untitled';
-    const category = doc.category || 'Others';
-    const badgeClass = getCategoryBadgeClass(category);
-    const docNumber = doc.document_number || '—';
-    const institution = doc.institution_name || '—';
-    const year = doc.year || '—';
-    const addedDate = formatDate(doc.created_at);
-    const sub_category = doc.sub_category ? `<br><small class="text-secondary">${doc.sub_category}</small>` : '';
-    const isFav = !!doc.favorite;
-    const offsetIndex = (state.page - 1) * state.pageSize + (index + 1);
+  if (state.viewMode === 'grid') {
+    if (gridContainer) {
+      gridContainer.innerHTML = docs.map((doc) => {
+        const title = doc.title || 'Untitled';
+        const category = doc.category || 'Others';
+        const badgeClass = getCategoryBadgeClass(category);
+        const addedDate = formatDate(doc.created_at);
+        const isFav = !!doc.favorite;
+        
+        return `
+          <div class="col">
+            <div class="card h-100 border-0 shadow-sm doc-grid-card" style="border-radius:12px; overflow:hidden;">
+              <div class="card-img-top d-flex align-items-center justify-content-center position-relative py-4" style="background: rgba(var(--primary-rgb, 67, 97, 238), 0.05); height: 130px; border-radius: 12px 12px 0 0;">
+                <span class="position-absolute" style="top:10px; right:10px;">
+                  <button class="btn btn-sm btn-light rounded-circle fav-btn ${isFav ? 'active' : ''}" style="width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center; border:none; box-shadow:0 2px 5px rgba(0,0,0,0.15);" onclick="toggleFavorite('${doc.id}', ${isFav}); event.stopPropagation();">
+                    <i class="fa-solid fa-star ${isFav ? 'text-warning' : 'text-muted'}"></i>
+                  </button>
+                </span>
+                <i class="fa-solid ${getCategoryIcon(category)} fa-3x" style="color: ${getCategoryColor(category)}"></i>
+              </div>
+              <div class="card-body p-3 d-flex flex-column">
+                <span class="badge ${badgeClass} align-self-start mb-2">${category}</span>
+                <h6 class="card-title fw-bold text-truncate mb-1" style="font-size:0.95rem;" title="${title}">${title}</h6>
+                ${doc.sub_category ? `<p class="text-muted small text-truncate mb-2" style="font-size:0.8rem;">${doc.sub_category}</p>` : '<p class="text-muted small mb-2">&nbsp;</p>'}
+                <div class="mt-auto pt-2 border-top">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-secondary" style="font-size:0.75rem;"><i class="fa-regular fa-calendar me-1"></i>${addedDate}</small>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-link p-0 text-decoration-none text-secondary" data-bs-toggle="dropdown" style="box-shadow:none;"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                      <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li><a class="dropdown-item py-2" href="#" onclick="openViewModal('${doc.id}'); return false;"><i class="fa-solid fa-eye text-info me-2"></i>View</a></li>
+                        <li><a class="dropdown-item py-2" href="#" onclick="openEditModal('${doc.id}'); return false;"><i class="fa-solid fa-pencil text-warning me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item py-2" href="#" onclick="downloadDocument('${doc.id}'); return false;"><i class="fa-solid fa-download text-success me-2"></i>Download</a></li>
+                        <li><a class="dropdown-item py-2" href="#" onclick="printDocument('${doc.id}'); return false;"><i class="fa-solid fa-print text-secondary me-2"></i>Print</a></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><a class="dropdown-item py-2 text-danger" href="#" onclick="deleteDocument('${doc.id}'); return false;"><i class="fa-solid fa-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  } else {
+    if (tbody) {
+      tbody.innerHTML = docs.map((doc, index) => {
+        const title = doc.title || 'Untitled';
+        const category = doc.category || 'Others';
+        const badgeClass = getCategoryBadgeClass(category);
+        const docNumber = doc.document_number || '—';
+        const institution = doc.institution_name || '—';
+        const year = doc.year || '—';
+        const addedDate = formatDate(doc.created_at);
+        const sub_category = doc.sub_category ? `<br><small class="text-secondary">${doc.sub_category}</small>` : '';
+        const isFav = !!doc.favorite;
+        const offsetIndex = (state.page - 1) * state.pageSize + (index + 1);
 
-    return `
-      <tr>
-        <td>${offsetIndex}</td>
-        <td>
-          <span class="fw-semibold">${title}</span>
-          ${sub_category}
-          <br>
-          <span class="badge ${badgeClass} mt-1">${category}</span>
-        </td>
-        <td>${docNumber}</td>
-        <td>${institution}</td>
-        <td>${year}</td>
-        <td>${addedDate}</td>
-        <td>
-          <button class="btn-icon-action" data-bs-toggle="tooltip" title="View" onclick="openViewModal('${doc.id}')"><i class="fa-solid fa-eye text-info"></i></button>
-          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fa-solid fa-pencil text-warning"></i></button>
-          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Download" onclick="downloadDocument('${doc.id}')"><i class="fa-solid fa-download text-success"></i></button>
-          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Print" onclick="printDocument('${doc.id}')"><i class="fa-solid fa-print text-secondary"></i></button>
-          <button class="btn-icon-action fav-btn" data-bs-toggle="tooltip" title="Favorite" onclick="toggleFavorite('${doc.id}', ${isFav})">
-            <i class="fa-solid fa-star ${isFav ? 'text-warning' : 'text-muted'}"></i>
-          </button>
-          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fa-solid fa-trash text-danger"></i></button>
-        </td>
-      </tr>
-    `;
-  }).join('');
+        return `
+          <tr>
+            <td>${offsetIndex}</td>
+            <td>
+              <span class="fw-semibold">${title}</span>
+              ${sub_category}
+              <br>
+              <span class="badge ${badgeClass} mt-1">${category}</span>
+            </td>
+            <td>${docNumber}</td>
+            <td>${institution}</td>
+            <td>${year}</td>
+            <td>${addedDate}</td>
+            <td>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="View" onclick="openViewModal('${doc.id}')"><i class="fa-solid fa-eye text-info"></i></button>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fa-solid fa-pencil text-warning"></i></button>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Download" onclick="downloadDocument('${doc.id}')"><i class="fa-solid fa-download text-success"></i></button>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Print" onclick="printDocument('${doc.id}')"><i class="fa-solid fa-print text-secondary"></i></button>
+              <button class="btn-icon-action fav-btn ${isFav ? 'active' : ''}" data-bs-toggle="tooltip" title="Favorite" onclick="toggleFavorite('${doc.id}', ${isFav})">
+                <i class="fa-solid fa-star"></i>
+              </button>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fa-solid fa-trash text-danger"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
   
   if (typeof initTooltips === 'function') initTooltips();
 }
@@ -814,3 +907,73 @@ window.copyLink = async function(docId) {
     showToast('info', 'Not Available', 'No file attached to this document.');
   }
 };
+
+function initViewMode() {
+  const listBtn = document.getElementById('listViewBtn');
+  const gridBtn = document.getElementById('gridViewBtn');
+  
+  if (listBtn && gridBtn) {
+    listBtn.addEventListener('click', () => switchViewMode('list'));
+    gridBtn.addEventListener('click', () => switchViewMode('grid'));
+    
+    // Set initial active state in UI
+    const currentMode = state.viewMode;
+    if (currentMode === 'grid') {
+      listBtn.classList.remove('btn-primary');
+      listBtn.classList.add('btn-outline-secondary');
+      gridBtn.classList.remove('btn-outline-secondary');
+      gridBtn.classList.add('btn-primary');
+    } else {
+      listBtn.classList.remove('btn-outline-secondary');
+      listBtn.classList.add('btn-primary');
+      gridBtn.classList.remove('btn-primary');
+      gridBtn.classList.add('btn-outline-secondary');
+    }
+  }
+}
+
+window.switchViewMode = function(mode) {
+  state.viewMode = mode;
+  localStorage.setItem('dv_view_mode', mode);
+  
+  const listBtn = document.getElementById('listViewBtn');
+  const gridBtn = document.getElementById('gridViewBtn');
+  
+  if (listBtn && gridBtn) {
+    if (mode === 'grid') {
+      listBtn.classList.remove('btn-primary');
+      listBtn.classList.add('btn-outline-secondary');
+      gridBtn.classList.remove('btn-outline-secondary');
+      gridBtn.classList.add('btn-primary');
+    } else {
+      listBtn.classList.remove('btn-outline-secondary');
+      listBtn.classList.add('btn-primary');
+      gridBtn.classList.remove('btn-primary');
+      gridBtn.classList.add('btn-outline-secondary');
+    }
+  }
+  
+  renderDocumentsTable(state.documents);
+};
+
+function getCategoryIcon(cat) {
+  switch (cat) {
+    case 'College': return 'fa-graduation-cap';
+    case 'High School': return 'fa-school';
+    case 'Semester Records': return 'fa-book-open';
+    case 'Land Records': return 'fa-map';
+    case 'Certificates': return 'fa-certificate';
+    default: return 'fa-file-lines';
+  }
+}
+
+function getCategoryColor(cat) {
+  switch (cat) {
+    case 'College': return '#8338ec';
+    case 'High School': return '#ff006e';
+    case 'Semester Records': return '#3a0ca3';
+    case 'Land Records': return '#38b000';
+    case 'Certificates': return '#ff5400';
+    default: return '#4361ee';
+  }
+}

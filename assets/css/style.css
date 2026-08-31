@@ -386,4 +386,30 @@ a { color: var(--primary); text-decoration: none; }
   transition: all 0.3s ease;
 }
 
+/* 7. Grid View Card Styling */
+.doc-grid-card {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.doc-grid-card:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme='dark'] .doc-grid-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.doc-grid-card .fav-btn {
+  transition: all 0.2s ease !important;
+}
+
+.doc-grid-card .fav-btn.active i {
+  color: #ffc107 !important;
+}
+
+
 

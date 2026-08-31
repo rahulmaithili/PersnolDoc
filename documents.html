@@ -101,6 +101,10 @@
         </div>
         
         <div class="d-flex gap-2">
+            <div class="btn-group" role="group" aria-label="View switch">
+                <button type="button" class="btn btn-outline-secondary" id="listViewBtn" title="List View"><i class="fa-solid fa-list"></i></button>
+                <button type="button" class="btn btn-outline-secondary" id="gridViewBtn" title="Grid View"><i class="fa-solid fa-th-large"></i></button>
+            </div>
             <button class="btn btn-secondary" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas"><i class="fa-solid fa-filter me-1"></i> Filter</button>
             <a href="add-document.html" class="btn btn-primary"><i class="fa-solid fa-plus me-1"></i> Add Document</a>
         </div>
@@ -108,7 +112,8 @@
 
     <div class="card shadow-sm border-0">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <!-- List View Container -->
+            <div id="listViewContainer" class="table-responsive">
                 <table class="table table-hover align-middle mb-0" id="documentsTable">
                     <thead class="table-light">
                         <tr>
@@ -129,6 +134,13 @@
                         <tr class="skeleton-row"><td>5</td><td>Loading...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Grid View Container -->
+            <div id="gridViewContainer" class="d-none">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 p-4" id="documentsGrid">
+                    <!-- Dynamic grid cards -->
+                </div>
             </div>
             <div id="docsEmpty" class="empty-state d-none">
                 <i class="fa-solid fa-folder-open fa-3x mb-3"></i>

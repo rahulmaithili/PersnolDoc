@@ -120,6 +120,28 @@
 
         <!-- Edit Forms -->
         <div class="col-lg-8">
+            <!-- Profile Picture Card -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fa-solid fa-image me-2 text-primary"></i>Profile Picture</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <img src="https://ui-avatars.com/api/?name=U&background=4361ee&color=fff&size=80" alt="avatar" class="rounded-circle user-avatar-img shadow-sm" id="profileAvatarPreview" width="80" height="80">
+                        </div>
+                        <div class="col">
+                            <label class="form-label fw-semibold small mb-1">Upload New Picture</label>
+                            <input type="file" class="form-control form-control-sm mb-2" id="avatarFileInput" accept="image/*">
+                            <small class="text-secondary d-block">Recommended size: 200x200px. Max size: 2MB.</small>
+                            <div class="upload-progress mt-2" id="avatarUploadProgressWrap" style="display: none; height: 8px;">
+                                <div class="upload-progress-bar" id="avatarUploadProgressBar" style="width: 0%; height: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-white py-3">
                     <h6 class="mb-0 fw-bold">Personal Information</h6>
@@ -221,9 +243,12 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('profileSince').textContent = new Date(p.created_at).toLocaleDateString();
         }
         
+        const avatarUrl = p.profile_photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(p.name || 'U') + '&background=4361ee&color=fff&size=80';
         document.querySelectorAll('.user-avatar-img').forEach(img => {
-          img.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(p.name || 'U') + '&background=4361ee&color=fff&size=80';
+          img.src = avatarUrl;
         });
+        const preview = document.getElementById('profileAvatarPreview');
+        if (preview) preview.src = avatarUrl;
       }
   } catch (e) { console.error('Failed to load profile', e); }
 
@@ -305,7 +330,69 @@ document.addEventListener('DOMContentLoaded', async function() {
               else seg.style.backgroundColor = '#28a745';
           }
       });
-  });
+  // Handle profile picture upload
+  const fileInput = document.getElementById('avatarFileInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', async function() {
+      const file = this.files[0];
+      if (!file) return;
+      
+      // Limit file size to 2MB
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('warning', 'Validation', 'File size must be less than 2MB');
+        this.value = '';
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = async function() {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          const mimeType = file.type;
+          const userObj = getUser();
+          const fileName = `profile-${userObj ? userObj.id : 'user'}-${Date.now()}.${file.name.split('.').pop()}`;
+          
+          const progressWrap = document.getElementById('avatarUploadProgressWrap');
+          const progressBar = document.getElementById('avatarUploadProgressBar');
+          if (progressWrap) progressWrap.style.display = 'block';
+          if (progressBar) progressBar.style.width = '30%';
+          
+          const response = await apiRequest('uploadFile', {
+            base64Data,
+            mimeType,
+            fileName
+          }, 'POST');
+          
+          if (progressBar) progressBar.style.width = '70%';
+          
+          if (response.success && response.data) {
+            const fileId = response.data.fileId;
+            const profilePhotoUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
+            
+            if (progressBar) progressBar.style.width = '100%';
+            
+            // Save to database
+            const updateRes = await updateProfile(undefined, profilePhotoUrl);
+            if (updateRes) {
+              const preview = document.getElementById('profileAvatarPreview');
+              if (preview) preview.src = profilePhotoUrl;
+            }
+          } else {
+            showToast('error', 'Error', response.message || 'Failed to upload profile picture.');
+          }
+          
+          setTimeout(() => {
+            if (progressWrap) progressWrap.style.display = 'none';
+            if (progressBar) progressBar.style.width = '0%';
+          }, 1500);
+        } catch (e) {
+          console.error(e);
+          showToast('error', 'Error', 'Failed to change profile picture');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
 
   });
 </script>

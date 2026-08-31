@@ -97,25 +97,32 @@ async function resetPassword(token, newPassword, confirmPassword) {
 async function getProfile() {
   const response = await apiRequest('getProfile', {}, 'GET');
   if (response.success) {
-    return response.profile;
+    return response.data || response.profile;
   }
   return null;
 }
 
-async function updateProfile(name) {
+async function updateProfile(name, profile_photo) {
   showLoading('Updating profile...');
-  const response = await apiRequest('updateProfile', { name }, 'POST');
+  const params = {};
+  if (name !== undefined) params.name = name;
+  if (profile_photo !== undefined) params.profile_photo = profile_photo;
+  
+  const response = await apiRequest('updateProfile', params, 'POST');
   hideLoading();
   
   if (response.success) {
     const user = getUser();
     if (user) {
-      user.name = name;
+      if (name !== undefined) user.name = name;
+      if (profile_photo !== undefined) user.profile_photo = profile_photo;
       setUser(user);
       initUserAvatar();
     }
     showToast('success', 'Success', 'Profile updated successfully');
+    return response.data;
   }
+  return null;
 }
 
 async function changePassword(currentPassword, newPassword) {
@@ -136,8 +143,8 @@ function initUserAvatar() {
     
     const avatarEls = document.querySelectorAll('.user-avatar-img');
     avatarEls.forEach(el => {
-      if (user.avatarUrl) {
-        el.src = user.avatarUrl;
+      if (user.profile_photo) {
+        el.src = user.profile_photo;
       } else {
         // Generate initial avatar
         const initial = (user.name || 'U').charAt(0).toUpperCase();

@@ -1,7 +1,7 @@
 // Dashboard Logic
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.location.pathname.includes('dashboard.html')) {
+  if (document.getElementById('stat-total')) {
     checkAuth();
     initTheme();
     initTooltips();
@@ -83,60 +83,69 @@ async function loadDashboardStats() {
 }
 
 async function loadRecentDocuments() {
-  const tbody = document.getElementById('recentDocsTableBody');
+  const tbody = document.getElementById('recentDocsBody');
+  const emptyEl = document.getElementById('recentDocsEmpty');
   if (!tbody) return;
   
   // Show skeleton
-  tbody.innerHTML = Array(5).fill(`
+  tbody.innerHTML = Array(3).fill(`
     <tr class="skeleton-row">
-      <td><div class="skeleton skeleton-text" style="width: 80%"></div></td>
-      <td><div class="skeleton skeleton-text" style="width: 60%"></div></td>
-      <td><div class="skeleton skeleton-text" style="width: 50%"></div></td>
-      <td><div class="skeleton skeleton-text" style="width: 100%"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:20px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:150px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:40px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+      <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
     </tr>
   `).join('');
   
   try {
     const response = await apiRequest('getDocuments', { page: 1, pageSize: 5 }, 'GET');
     
-    if (response.success && (response.data || response.documents)) {
-      const docs = (response.data && response.data.documents) ? response.data.documents : (response.documents || []);
+    if (response.success) {
+      const docs = response.documents || (response.data && response.data.documents) || [];
       
       if (docs.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="4" class="text-center">
-              <div class="empty-state">
-                <i class="fas fa-folder-open empty-icon"></i>
-                <p>No documents found.</p>
-              </div>
-            </td>
-          </tr>
-        `;
+        tbody.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('d-none');
         return;
       }
       
-      tbody.innerHTML = docs.map(doc => `
-        <tr>
-          <td>
-            <strong>${doc.title || 'Untitled'}</strong>
-          </td>
-          <td>
-            <span class="badge ${getCategoryBadgeClass(doc.category)}">${doc.category}</span>
-          </td>
-          <td>${formatDate(doc.created_at)}</td>
-          <td>
-            <button class="action-btn" title="View" onclick="openViewModal('${doc.id}')">
-              <i class="fas fa-eye"></i>
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      if (emptyEl) emptyEl.classList.add('d-none');
       
+      tbody.innerHTML = docs.map((doc, index) => {
+        const title = doc.title || 'Untitled';
+        const category = doc.category || 'Others';
+        const sub_category = doc.sub_category ? `<br><small class="text-secondary">${doc.sub_category}</small>` : '';
+        const year = doc.year || '—';
+        const added = formatDate(doc.created_at);
+        const badgeClass = getCategoryBadgeClass(category);
+        
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td>
+              <span class="fw-semibold">${title}</span>
+              ${sub_category}
+            </td>
+            <td><span class="badge ${badgeClass}">${category}</span></td>
+            <td>${year}</td>
+            <td>${added}</td>
+            <td>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="View" onclick="openViewModal('${doc.id}')"><i class="fa-solid fa-eye text-info"></i></button>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fa-solid fa-pencil text-warning"></i></button>
+              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fa-solid fa-trash text-danger"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      
+      // Initialize tooltips
+      if (typeof initTooltips === 'function') initTooltips();
     }
   } catch (err) {
     console.error('Failed to load recent docs', err);
-    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Failed to load documents</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Failed to load documents</td></tr>`;
   }
 }
 

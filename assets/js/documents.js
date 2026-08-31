@@ -48,15 +48,17 @@ function readURLParams() {
 
 async function loadDocuments() {
   state.loading = true;
-  const tbody = document.getElementById('documentsTableBody');
+  const tbody = document.getElementById('documentsBody');
   if (tbody) {
-    tbody.innerHTML = Array(state.pageSize).fill(`
+    tbody.innerHTML = Array(5).fill(`
       <tr class="skeleton-row">
-        <td><div class="skeleton skeleton-text" style="width: 80%"></div></td>
-        <td><div class="skeleton skeleton-text" style="width: 60%"></div></td>
-        <td><div class="skeleton skeleton-text" style="width: 50%"></div></td>
-        <td><div class="skeleton skeleton-text" style="width: 70%"></div></td>
-        <td><div class="skeleton skeleton-text" style="width: 100%"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:20px"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:150px"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:100px"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:40px"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:80px"></div></td>
+        <td><div class="skeleton skeleton-text" style="width:120px"></div></td>
       </tr>
     `).join('');
   }
@@ -71,7 +73,6 @@ async function loadDocuments() {
   if (state.searchQuery) {
     action = 'searchDocuments';
     params = { query: state.searchQuery };
-    // Search endpoint might not support pagination cleanly, assume it returns all matches
   } else if (Object.keys(state.filters).length > 0) {
     action = 'filterDocuments';
   }
@@ -80,8 +81,8 @@ async function loadDocuments() {
     const response = await apiRequest(action, params, 'GET');
     
     if (response.success) {
-      state.documents = response.documents || [];
-      state.total = response.total || state.documents.length;
+      state.documents = response.documents || (response.data && response.data.documents) || [];
+      state.total = response.total || (response.data && response.data.total) || state.documents.length;
       renderDocumentsTable(state.documents);
       renderPagination(state.total, state.page, state.pageSize);
     } else {
@@ -89,55 +90,65 @@ async function loadDocuments() {
     }
   } catch (err) {
     console.error('Failed to load documents:', err);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to load documents</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Failed to load documents</td></tr>`;
   } finally {
     state.loading = false;
   }
 }
 
 function renderDocumentsTable(docs) {
-  const tbody = document.getElementById('documentsTableBody');
+  const tbody = document.getElementById('documentsBody');
+  const emptyEl = document.getElementById('docsEmpty');
   if (!tbody) return;
   
   if (docs.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5">
-          <div class="empty-state">
-            <i class="fas fa-file-alt empty-icon"></i>
-            <p>No documents found.</p>
-          </div>
-        </td>
-      </tr>
-    `;
+    tbody.innerHTML = '';
+    if (emptyEl) emptyEl.classList.remove('d-none');
     return;
   }
   
-  tbody.innerHTML = docs.map(doc => `
-    <tr>
-      <td>
-        <strong>${doc.title || 'Untitled'}</strong>
-        ${doc.description ? `<br><small class="text-secondary">${doc.description.substring(0, 50)}...</small>` : ''}
-      </td>
-      <td>
-        <span class="badge ${getCategoryBadgeClass(doc.category)}">${doc.category || 'None'}</span>
-      </td>
-      <td>${formatDate(doc.created_at)}</td>
-      <td>
-        <button class="action-btn" title="Toggle Favorite" onclick="toggleFavorite('${doc.id}', ${doc.favorite})">
-          <i class="fa${doc.favorite ? 's text-warning' : 'r'} fa-star"></i>
-        </button>
-      </td>
-      <td>
-        <button class="action-btn" title="View" onclick="openViewModal('${doc.id}')"><i class="fas fa-eye"></i></button>
-        <button class="action-btn" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fas fa-edit"></i></button>
-        <button class="action-btn" title="Download" onclick="downloadDocument('${doc.id}')"><i class="fas fa-download"></i></button>
-        <button class="action-btn" title="Print" onclick="printDocument('${doc.id}')"><i class="fas fa-print"></i></button>
-        <button class="action-btn" title="Copy Link" onclick="copyLink('${doc.id}')"><i class="fas fa-link"></i></button>
-        <button class="action-btn text-danger" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fas fa-trash"></i></button>
-      </td>
-    </tr>
-  `).join('');
+  if (emptyEl) emptyEl.classList.add('d-none');
+  
+  tbody.innerHTML = docs.map((doc, index) => {
+    const title = doc.title || 'Untitled';
+    const category = doc.category || 'Others';
+    const badgeClass = getCategoryBadgeClass(category);
+    const docNumber = doc.document_number || '—';
+    const institution = doc.institution_name || '—';
+    const year = doc.year || '—';
+    const addedDate = formatDate(doc.created_at);
+    const sub_category = doc.sub_category ? `<br><small class="text-secondary">${doc.sub_category}</small>` : '';
+    const isFav = !!doc.favorite;
+    const offsetIndex = (state.page - 1) * state.pageSize + (index + 1);
+
+    return `
+      <tr>
+        <td>${offsetIndex}</td>
+        <td>
+          <span class="fw-semibold">${title}</span>
+          ${sub_category}
+          <br>
+          <span class="badge ${badgeClass} mt-1">${category}</span>
+        </td>
+        <td>${docNumber}</td>
+        <td>${institution}</td>
+        <td>${year}</td>
+        <td>${addedDate}</td>
+        <td>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="View" onclick="openViewModal('${doc.id}')"><i class="fa-solid fa-eye text-info"></i></button>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fa-solid fa-pencil text-warning"></i></button>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Download" onclick="downloadDocument('${doc.id}')"><i class="fa-solid fa-download text-success"></i></button>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Print" onclick="printDocument('${doc.id}')"><i class="fa-solid fa-print text-secondary"></i></button>
+          <button class="btn-icon-action fav-btn" data-bs-toggle="tooltip" title="Favorite" onclick="toggleFavorite('${doc.id}', ${isFav})">
+            <i class="fa-solid fa-star ${isFav ? 'text-warning' : 'text-muted'}"></i>
+          </button>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fa-solid fa-trash text-danger"></i></button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  if (typeof initTooltips === 'function') initTooltips();
 }
 
 function renderPagination(total, page, pageSize) {

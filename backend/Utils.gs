@@ -27,11 +27,24 @@ function jsonResponse(success, message, data = null, statusCode = null) {
 }
 
 function getSpreadsheetId() {
-  return PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  return PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')
+      || '1hmDyaebqSK2BqvtMtzIEi5iC1Ju4FF11_wyglyYAuTY';
 }
 
 function getDriveFolderId() {
-  return PropertiesService.getScriptProperties().getProperty('DRIVE_FOLDER_ID');
+  return PropertiesService.getScriptProperties().getProperty('DRIVE_FOLDER_ID')
+      || '1uAs49CwV9TiRAPq1Z2ok3Q2SNHw6Fucz';
+}
+
+/**
+ * Run this once from the Apps Script editor to save properties permanently.
+ */
+function initProperties() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('SPREADSHEET_ID', '1hmDyaebqSK2BqvtMtzIEi5iC1Ju4FF11_wyglyYAuTY');
+  props.setProperty('DRIVE_FOLDER_ID', '1uAs49CwV9TiRAPq1Z2ok3Q2SNHw6Fucz');
+  Logger.log('✅ SPREADSHEET_ID = ' + props.getProperty('SPREADSHEET_ID'));
+  Logger.log('✅ DRIVE_FOLDER_ID = ' + props.getProperty('DRIVE_FOLDER_ID'));
 }
 
 function getSheetByName(name) {

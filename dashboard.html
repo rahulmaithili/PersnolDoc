@@ -239,31 +239,35 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <div>
-          <h5 class="modal-title mb-1" id="viewDocTitle">Document Title</h5>
-          <span id="viewDocBadge"></span>
-        </div>
+        <h5 class="modal-title">
+            <span id="viewDocTitle">Document Title</span> 
+            <span class="badge bg-primary ms-2" id="viewDocBadge">Category</span>
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div class="row g-4">
-          <div class="col-md-4">
-            <dl class="row small mb-0" id="viewDocInfo"></dl>
-          </div>
-          <div class="col-md-8">
-            <div id="viewDocPreview" style="min-height:300px;background:var(--bg);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-              <p class="text-secondary small">No preview available</p>
+        <div class="row h-100">
+            <div class="col-md-5 border-end">
+                <h6 class="border-bottom pb-2 mb-3">Document Details</h6>
+                <div class="small" id="viewDocInfoList">
+                    <!-- populated by JS -->
+                </div>
             </div>
-          </div>
+            <div class="col-md-7">
+                <h6 class="border-bottom pb-2 mb-3">Preview</h6>
+                <div id="viewDocPreview" class="w-100 h-100 min-vh-50 d-flex justify-content-center align-items-center bg-light border rounded">
+                    <!-- populated by JS -->
+                </div>
+            </div>
         </div>
       </div>
-      <div class="modal-footer flex-wrap gap-2">
-        <button class="btn btn-sm btn-outline-secondary" id="viewPrintBtn"><i class="fa-solid fa-print me-1"></i>Print</button>
-        <button class="btn btn-sm btn-outline-primary" id="viewDownloadBtn"><i class="fa-solid fa-download me-1"></i>Download</button>
-        <button class="btn btn-sm btn-outline-warning" id="viewEditBtn"><i class="fa-solid fa-pencil me-1"></i>Edit</button>
-        <button class="btn btn-sm btn-outline-secondary" id="viewOpenBtn"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open</button>
-        <button class="btn btn-sm btn-outline-secondary" id="viewCopyBtn"><i class="fa-solid fa-copy me-1"></i>Copy Link</button>
-        <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" id="btnViewCopy"><i class="fa-solid fa-copy me-1"></i>Copy Link</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnViewOpen"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Original</button>
+        <button type="button" class="btn btn-info btn-sm text-white" id="btnViewPrint"><i class="fa-solid fa-print me-1"></i>Print</button>
+        <button type="button" class="btn btn-success btn-sm" id="btnViewDownload"><i class="fa-solid fa-download me-1"></i>Download</button>
+        <button type="button" class="btn btn-warning btn-sm text-dark" id="btnViewEdit"><i class="fa-solid fa-pencil me-1"></i>Edit</button>
+        <button type="button" class="btn btn-light btn-sm border" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -329,6 +333,7 @@
 <script src="assets/js/config.js"></script>
 <script src="assets/js/api.js"></script>
 <script src="assets/js/auth.js"></script>
+<script src="assets/js/documents.js"></script>
 <script src="assets/js/dashboard.js"></script>
 </body>
 </html>

@@ -11,7 +11,7 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('documentsTableBody')) {
+  if (document.getElementById('documentsBody')) {
     checkAuth();
     initTheme();
     initTooltips();
@@ -554,47 +554,155 @@ window.toggleFavorite = async function(docId, currentVal) {
   
   if (response.success) {
     showToast('success', 'Success', `Document ${!currentVal ? 'added to' : 'removed from'} favorites`);
-    loadDocuments();
+    if (document.getElementById('documentsBody')) {
+      loadDocuments();
+    } else if (typeof loadRecentDocuments === 'function') {
+      loadRecentDocuments();
+    }
   } else {
     showToast('error', 'Error', response.message || 'Failed to update favorite status');
   }
 };
 
-window.openViewModal = function(docId) {
-  const doc = state.documents.find(d => String(d.id) === String(docId));
-  if (!doc) return;
+window.openViewModal = async function(docId) {
+  let doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
   
-  document.getElementById('viewModalTitle').textContent = doc.title;
-  document.getElementById('viewModalCategory').innerHTML = `<span class="badge ${getCategoryBadgeClass(doc.category)}">${doc.category}</span>`;
-  document.getElementById('viewModalDate').textContent = formatDate(doc.created_at);
-  document.getElementById('viewModalDesc').textContent = doc.description || 'No description provided.';
-  
-  const iframe = document.getElementById('viewModalIframe');
-  if (doc.drive_file_id) {
-    iframe.src = `https://drive.google.com/file/d/${doc.drive_file_id}/preview`;
-    iframe.style.display = 'block';
-  } else if (doc.document_url) {
-    iframe.src = doc.document_url;
-    iframe.style.display = 'block';
-  } else {
-    iframe.style.display = 'none';
+  if (!doc) {
+    showLoading('Loading document...');
+    const response = await apiRequest('getDocument', { docId }, 'GET');
+    hideLoading();
+    if (response.success && response.data) {
+      doc = response.data;
+    }
   }
   
-  const modal = document.getElementById('viewModal');
-  if(modal) modal.classList.add('show');
+  if (!doc) {
+    showToast('error', 'Error', 'Document not found');
+    return;
+  }
+  
+  document.getElementById('viewDocTitle').textContent = doc.title || 'Untitled';
+  const badgeClass = getCategoryBadgeClass(doc.category);
+  const badgeEl = document.getElementById('viewDocBadge');
+  if (badgeEl) {
+    badgeEl.className = `badge ${badgeClass} ms-2`;
+    badgeEl.textContent = doc.category || 'Others';
+  }
+  
+  const infoList = document.getElementById('viewDocInfoList');
+  if (infoList) {
+    const fields = [
+      { label: 'Category', value: doc.category },
+      { label: 'Sub Category', value: doc.sub_category },
+      { label: 'Doc Number', value: doc.document_number },
+      { label: 'Institution', value: doc.institution_name },
+      { label: 'Course/Degree', value: doc.course_name },
+      { label: 'Semester', value: doc.semester },
+      { label: 'Month', value: doc.month },
+      { label: 'Year', value: doc.year },
+      { label: 'Receipt No', value: doc.receipt_number },
+      { label: 'Issue Date', value: doc.issue_date ? formatDate(doc.issue_date) : '' },
+      { label: 'Expiry Date', value: doc.expiry_date ? formatDate(doc.expiry_date) : '' },
+      { label: 'Tags', value: doc.tags },
+      { label: 'Notes', value: doc.notes },
+      { label: 'Description', value: doc.description }
+    ];
+    
+    let infoHtml = '<table class="table table-sm table-borderless mb-0">';
+    fields.forEach(f => {
+      if (f.value) {
+        infoHtml += `
+          <tr>
+            <td class="fw-semibold text-secondary" style="width: 40%">${f.label}:</td>
+            <td class="text-primary-emphasis">${f.value}</td>
+          </tr>
+        `;
+      }
+    });
+    infoHtml += '</table>';
+    infoList.innerHTML = infoHtml;
+  }
+  
+  const previewContainer = document.getElementById('viewDocPreview');
+  if (previewContainer) {
+    if (doc.drive_file_id) {
+      previewContainer.innerHTML = `
+        <iframe src="https://drive.google.com/file/d/${doc.drive_file_id}/preview" style="width:100%; height:450px; border:none; border-radius:6px;"></iframe>
+      `;
+    } else if (doc.document_url) {
+      const url = doc.document_url;
+      const lowerUrl = url.toLowerCase();
+      if (lowerUrl.match(/\.(jpeg|jpg|gif|png|webp)/)) {
+        previewContainer.innerHTML = `<img src="${url}" class="img-fluid rounded" style="max-height:450px;" alt="Preview"/>`;
+      } else {
+        previewContainer.innerHTML = `
+          <div class="text-center p-4">
+            <i class="fa-solid fa-file-pdf fa-4x text-danger mb-3"></i>
+            <h6>External Link Attached</h6>
+            <p class="text-secondary small">Cannot display iframe preview for external URL. Click below to open original link.</p>
+            <a href="${url}" target="_blank" class="btn btn-sm btn-primary mt-2"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open in New Tab</a>
+          </div>
+        `;
+      }
+    } else {
+      previewContainer.innerHTML = `
+        <div class="text-center p-4">
+          <i class="fa-solid fa-eye-slash fa-3x text-muted opacity-50 mb-3"></i>
+          <p class="text-secondary small mb-0">No preview available for this document.</p>
+        </div>
+      `;
+    }
+  }
+  
+  const btnCopy = document.getElementById('btnViewCopy') || document.getElementById('viewCopyBtn');
+  const btnOpen = document.getElementById('btnViewOpen') || document.getElementById('viewOpenBtn');
+  const btnPrint = document.getElementById('btnViewPrint') || document.getElementById('viewPrintBtn');
+  const btnDownload = document.getElementById('btnViewDownload') || document.getElementById('viewDownloadBtn');
+  const btnEdit = document.getElementById('btnViewEdit') || document.getElementById('viewEditBtn');
+  
+  if (btnCopy) btnCopy.onclick = () => copyLink(doc.id);
+  if (btnOpen) btnOpen.onclick = () => {
+    const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : '');
+    if (url) window.open(url, '_blank');
+    else showToast('info', 'Not Available', 'No link available');
+  };
+  if (btnPrint) btnPrint.onclick = () => printDocument(doc.id);
+  if (btnDownload) btnDownload.onclick = () => downloadDocument(doc.id);
+  if (btnEdit) btnEdit.onclick = () => {
+    const modalEl = document.getElementById('viewDocModal');
+    if (modalEl) {
+      const bsModal = bootstrap.Modal.getInstance(modalEl);
+      if (bsModal) bsModal.hide();
+    }
+    
+    if (!document.getElementById('documentsBody')) {
+      window.location.href = `documents.html?edit=${doc.id}`;
+    } else {
+      openEditModal(doc.id);
+    }
+  };
+  
+  const modalEl = document.getElementById('viewDocModal');
+  if (modalEl) {
+    const bsModal = new bootstrap.Modal(modalEl);
+    bsModal.show();
+  }
 };
 
 window.closeViewModal = function() {
-  const modal = document.getElementById('viewModal');
-  if(modal) {
-    modal.classList.remove('show');
-    const iframe = document.getElementById('viewModalIframe');
-    if(iframe) iframe.src = '';
+  const modalEl = document.getElementById('viewDocModal');
+  if (modalEl) {
+    const bsModal = bootstrap.Modal.getInstance(modalEl);
+    if (bsModal) bsModal.hide();
   }
 };
 
-window.downloadDocument = function(docId) {
-  const doc = state.documents.find(d => String(d.id) === String(docId));
+window.downloadDocument = async function(docId) {
+  let doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
+  if (!doc) {
+    const res = await apiRequest('getDocument', { docId }, 'GET');
+    if (res.success) doc = res.data;
+  }
   if (!doc) return;
   
   if (doc.document_url) {
@@ -606,8 +714,12 @@ window.downloadDocument = function(docId) {
   }
 };
 
-window.printDocument = function(docId) {
-  const doc = state.documents.find(d => String(d.id) === String(docId));
+window.printDocument = async function(docId) {
+  let doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
+  if (!doc) {
+    const res = await apiRequest('getDocument', { docId }, 'GET');
+    if (res.success) doc = res.data;
+  }
   if (!doc) return;
   
   const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : null);
@@ -618,8 +730,12 @@ window.printDocument = function(docId) {
   }
 };
 
-window.copyLink = function(docId) {
-  const doc = state.documents.find(d => String(d.id) === String(docId));
+window.copyLink = async function(docId) {
+  let doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
+  if (!doc) {
+    const res = await apiRequest('getDocument', { docId }, 'GET');
+    if (res.success) doc = res.data;
+  }
   if (!doc) return;
   
   const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : null);

@@ -60,7 +60,7 @@ async function performLogout() {
 async function forgotPassword(email) {
   if (!email) {
     showToast('warning', 'Validation', 'Email is required');
-    return;
+    return false;
   }
   
   showLoading('Sending reset link...');
@@ -68,8 +68,10 @@ async function forgotPassword(email) {
   hideLoading();
   
   if (response.success) {
-    showToast('success', 'Success', 'Password reset instructions sent to your email.');
+    showToast('success', 'Success', 'Password reset instructions generated.');
+    return response;
   }
+  return false;
 }
 
 async function resetPassword(token, newPassword, confirmPassword) {

@@ -543,7 +543,7 @@ window.deleteDocument = async function(docId) {
 
 async function performDelete(docId, deleteDriveFile) {
   showLoading('Deleting...');
-  const response = await apiRequest('deleteDocument', { id: docId, deleteDriveFile }, 'POST');
+  const response = await apiRequest('deleteDocument', { docId: docId, deleteDriveFile }, 'POST');
   hideLoading();
   
   if (response.success) {
@@ -556,7 +556,7 @@ async function performDelete(docId, deleteDriveFile) {
 
 window.toggleFavorite = async function(docId, currentVal) {
   showLoading();
-  const response = await apiRequest('toggleFavorite', { id: docId, isFavorite: !currentVal }, 'POST');
+  const response = await apiRequest('toggleFavorite', { docId: docId, isFavorite: !currentVal }, 'POST');
   hideLoading();
   
   if (response.success) {

@@ -52,7 +52,7 @@
 
 /* Global */
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text-primary); transition: background 0.3s, color 0.3s; overflow-x: hidden; }
 a { color: var(--primary); text-decoration: none; }
 
@@ -151,8 +151,8 @@ a { color: var(--primary); text-decoration: none; }
 .empty-state i { font-size:3.5rem; color:var(--text-secondary); opacity:0.3; display:block; margin-bottom:16px; }
 
 /* Theme Switcher Panel */
-.theme-panel { position: fixed; right: -360px; top: 0; width: 340px; height: 100vh; background: var(--card-bg); box-shadow: -4px 0 30px rgba(0,0,0,0.15); z-index: 2000; transition: right 0.35s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; overflow: hidden; }
-.theme-panel.open { right: 0; }
+.theme-panel { position: fixed; right: -360px; top: 0; width: 340px; height: 100vh; background: var(--card-bg); box-shadow: -4px 0 30px rgba(0,0,0,0.15); z-index: 2000; transition: right 0.35s cubic-bezier(0.4,0,0.2,1); display: flex; flex-direction: column; overflow: hidden; visibility: hidden; }
+.theme-panel.open { right: 0; visibility: visible; }
 .theme-panel-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 1999; backdrop-filter: blur(2px); }
 .theme-panel-overlay.active { display: block; }
 .theme-panel-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }

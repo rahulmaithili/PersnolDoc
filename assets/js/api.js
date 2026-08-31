@@ -33,6 +33,15 @@ async function apiRequest(action, params = {}, method = 'GET') {
     const data = await response.json();
     
     if (data.success === false) {
+      if (data.message === 'Invalid or expired session' || data.message === 'Authentication required') {
+        clearToken();
+        clearUser();
+        showToast('error', 'Session Expired', 'Please login again.');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+        return data;
+      }
       showToast('error', 'Error', data.message || 'An error occurred');
     }
     
@@ -280,6 +289,9 @@ window.closeThemePanel = function() {
 
 function initSidebar() {
   const sidebar = document.getElementById('sidebar');
+  if (!sidebar || sidebar.dataset.initialized === 'true') return;
+  sidebar.dataset.initialized = 'true';
+
   const overlay = document.getElementById('sidebarOverlay');
   const toggleBtn = document.getElementById('sidebarToggleBtn');
   const closeBtn = document.getElementById('sidebarCloseBtn');

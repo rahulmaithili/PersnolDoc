@@ -112,20 +112,21 @@ a { color: var(--primary); text-decoration: none; }
 .stat-value { font-size:1.8rem; font-weight:700; color:var(--text-primary); line-height:1; }
 .stat-label { font-size:0.8rem; color:var(--text-secondary); margin-top:4px; }
 .stat-link { font-size:0.75rem; color:var(--primary); margin-top:6px; display:inline-block; }
-.stat-card.c-blue { border-left-color:#4361ee; }
-.stat-card.c-purple { border-left-color:#9c27b0; }
-.stat-card.c-orange { border-left-color:#ff9800; }
-.stat-card.c-green { border-left-color:#4caf50; }
-.stat-card.c-red { border-left-color:#e63946; }
-.stat-card.c-yellow { border-left-color:#ffc107; }
-.stat-card.c-teal { border-left-color:#00bcd4; }
-.c-blue .stat-icon { background:rgba(67,97,238,0.12); color:#4361ee; }
-.c-purple .stat-icon { background:rgba(156,39,176,0.12); color:#9c27b0; }
-.c-orange .stat-icon { background:rgba(255,152,0,0.12); color:#ff9800; }
-.c-green .stat-icon { background:rgba(76,175,80,0.12); color:#4caf50; }
-.c-red .stat-icon { background:rgba(230,57,70,0.12); color:#e63946; }
-.c-yellow .stat-icon { background:rgba(255,193,7,0.12); color:#ffc107; }
-.c-teal .stat-icon { background:rgba(0,188,212,0.12); color:#00bcd4; }
+.stat-card { border-left: none !important; color: #ffffff !important; }
+.stat-card.c-blue { background: linear-gradient(135deg, #1e3c72, #2a5298) !important; }
+.stat-card.c-purple { background: linear-gradient(135deg, #6a1b9a, #8e24aa) !important; }
+.stat-card.c-orange { background: linear-gradient(135deg, #d84315, #ff8f00) !important; }
+.stat-card.c-green { background: linear-gradient(135deg, #137333, #2e7d32) !important; }
+.stat-card.c-red { background: linear-gradient(135deg, #c62828, #e53935) !important; }
+.stat-card.c-yellow { background: linear-gradient(135deg, #ef6c00, #f9a825) !important; }
+.stat-card.c-teal { background: linear-gradient(135deg, #006064, #00838f) !important; }
+.stat-card.c-pink { background: linear-gradient(135deg, #ad1457, #d81b60) !important; }
+
+.stat-card .stat-value { color: #ffffff !important; }
+.stat-card .stat-label { color: rgba(255, 255, 255, 0.8) !important; }
+.stat-card .stat-link { color: rgba(255, 255, 255, 0.95) !important; font-weight: 500; }
+.stat-card .stat-link:hover { color: #ffffff !important; text-decoration: underline; }
+.stat-card .stat-icon { background: rgba(255, 255, 255, 0.18) !important; color: #ffffff !important; }
 
 /* Section card */
 .section-card { background:var(--card-bg); border-radius:12px; box-shadow:var(--shadow); padding:20px; margin-bottom:20px; }

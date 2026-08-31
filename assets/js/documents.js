@@ -627,7 +627,7 @@ window.openViewModal = async function(docId) {
   if (previewContainer) {
     if (doc.drive_file_id) {
       previewContainer.innerHTML = `
-        <iframe src="https://drive.google.com/file/d/${doc.drive_file_id}/preview" style="width:100%; height:450px; border:none; border-radius:6px;"></iframe>
+        <iframe src="https://docs.google.com/viewer?srcid=${doc.drive_file_id}&pid=explorer&efh=false&a=v&chrome=false&embedded=true" style="width:100%; height:450px; border:none; border-radius:6px;"></iframe>
       `;
     } else if (doc.document_url) {
       const url = doc.document_url;

@@ -63,29 +63,33 @@ async function forgotPassword(email) {
     return false;
   }
   
-  showLoading('Sending reset link...');
+  showLoading('Sending verification OTP...');
   const response = await apiRequest('forgotPassword', { email }, 'POST');
   hideLoading();
   
   if (response.success) {
-    showToast('success', 'Success', 'Password reset instructions generated.');
-    return response;
+    showToast('success', 'OTP Sent', 'A verification OTP has been sent to your email.');
+    return true;
   }
   return false;
 }
 
-async function resetPassword(token, newPassword, confirmPassword) {
+async function resetPassword(email, otp, newPassword, confirmPassword) {
+  if (!otp) {
+    showToast('warning', 'Validation', 'OTP is required');
+    return false;
+  }
   if (newPassword !== confirmPassword) {
     showToast('warning', 'Validation', 'Passwords do not match');
-    return;
+    return false;
   }
   if (newPassword.length < 8) {
     showToast('warning', 'Validation', 'Password must be at least 8 characters');
-    return;
+    return false;
   }
   
   showLoading('Resetting password...');
-  const response = await apiRequest('resetPassword', { token, newPassword }, 'POST');
+  const response = await apiRequest('resetPassword', { email, otp, newPassword }, 'POST');
   hideLoading();
   
   if (response.success) {
@@ -93,7 +97,9 @@ async function resetPassword(token, newPassword, confirmPassword) {
     setTimeout(() => {
       window.location.href = 'index.html';
     }, 2000);
+    return true;
   }
+  return false;
 }
 
 async function getProfile() {

@@ -11,7 +11,7 @@ const state = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.location.pathname.includes('documents.html')) {
+  if (document.getElementById('documentsTableBody')) {
     checkAuth();
     initTheme();
     initTooltips();
@@ -250,27 +250,26 @@ function loadCategories() {
 }
 
 function initAddEditModal() {
-  const form = document.getElementById('documentForm');
+  const form = document.getElementById('docForm');
   if (form) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       await submitDocumentForm();
     });
   }
-  
-  const addBtn = document.getElementById('addDocumentBtn');
-  if (addBtn) {
-    addBtn.addEventListener('click', openAddModal);
-  }
 }
 
 window.openAddModal = function() {
   clearForm();
-  document.getElementById('docId').value = '';
-  document.getElementById('addEditModalTitle').textContent = 'Add Document';
+  if (document.getElementById('fDocId')) document.getElementById('fDocId').value = '';
+  const titleEl = document.getElementById('addEditModalTitle');
+  if (titleEl) titleEl.textContent = 'Add Document';
   
-  const modal = document.getElementById('addEditModal');
-  if (modal) modal.classList.add('show');
+  const modalEl = document.getElementById('addEditModal');
+  if (modalEl) {
+    const bsModal = new bootstrap.Modal(modalEl);
+    bsModal.show();
+  }
 };
 
 window.openEditModal = function(docId) {
@@ -281,127 +280,200 @@ window.openEditModal = function(docId) {
   }
   
   populateEditForm(doc);
-  document.getElementById('addEditModalTitle').textContent = 'Edit Document';
+  const titleEl = document.getElementById('addEditModalTitle');
+  if (titleEl) titleEl.textContent = 'Edit Document';
   
-  const modal = document.getElementById('addEditModal');
-  if (modal) modal.classList.add('show');
+  const modalEl = document.getElementById('addEditModal');
+  if (modalEl) {
+    const bsModal = new bootstrap.Modal(modalEl);
+    bsModal.show();
+  }
 };
 
 window.closeAddEditModal = function() {
-  const modal = document.getElementById('addEditModal');
-  if (modal) modal.classList.remove('show');
+  const modalEl = document.getElementById('addEditModal');
+  if (modalEl) {
+    const bsModal = bootstrap.Modal.getInstance(modalEl);
+    if (bsModal) bsModal.hide();
+  }
 };
 
 function clearForm() {
-  const form = document.getElementById('documentForm');
+  const form = document.getElementById('docForm');
   if (form) form.reset();
   
-  // Hide progress
-  const progressContainer = document.getElementById('uploadProgressContainer');
-  if(progressContainer) progressContainer.style.display = 'none';
-  const progressBar = document.getElementById('uploadProgressBar');
-  if(progressBar) progressBar.style.width = '0%';
+  const progressWrap = document.getElementById('uploadProgressContainer');
+  if (progressWrap) progressWrap.classList.add('d-none');
+  const progressBar = document.getElementById('uploadProgress');
+  if (progressBar) progressBar.style.width = '0%';
 }
 
 function populateEditForm(doc) {
   clearForm();
-  document.getElementById('docId').value = doc.id;
-  document.getElementById('docTitle').value = doc.title || '';
-  document.getElementById('docCategory').value = doc.category || '';
-  document.getElementById('docDescription').value = doc.description || '';
-  // Note: Cannot populate file input for security reasons
+  if (document.getElementById('fDocId')) document.getElementById('fDocId').value = doc.id || '';
+  if (document.getElementById('fTitle')) document.getElementById('fTitle').value = doc.title || '';
+  if (document.getElementById('fCategory')) document.getElementById('fCategory').value = doc.category || '';
+  if (document.getElementById('fSubCategory')) document.getElementById('fSubCategory').value = doc.sub_category || '';
+  if (document.getElementById('fDocNumber')) document.getElementById('fDocNumber').value = doc.document_number || '';
+  if (document.getElementById('fInstitution')) document.getElementById('fInstitution').value = doc.institution_name || '';
+  if (document.getElementById('fCourse')) document.getElementById('fCourse').value = doc.course_name || '';
+  if (document.getElementById('fSemester')) document.getElementById('fSemester').value = doc.semester || '';
+  if (document.getElementById('fMonth')) document.getElementById('fMonth').value = doc.month || '';
+  if (document.getElementById('fYear')) document.getElementById('fYear').value = doc.year || '';
+  if (document.getElementById('fReceipt')) document.getElementById('fReceipt').value = doc.receipt_number || '';
+  if (document.getElementById('fIssueDate')) {
+    document.getElementById('fIssueDate').value = doc.issue_date ? doc.issue_date.split('T')[0] : '';
+  }
+  if (document.getElementById('fExpiryDate')) {
+    document.getElementById('fExpiryDate').value = doc.expiry_date ? doc.expiry_date.split('T')[0] : '';
+  }
+  if (document.getElementById('fTags')) document.getElementById('fTags').value = doc.tags || '';
+  if (document.getElementById('fNotes')) document.getElementById('fNotes').value = doc.notes || '';
+  if (document.getElementById('fDescription')) document.getElementById('fDescription').value = doc.description || '';
+  if (document.getElementById('fFavorite')) document.getElementById('fFavorite').checked = !!doc.favorite;
+  if (document.getElementById('fDocUrl')) document.getElementById('fDocUrl').value = doc.document_url || '';
 }
 
 async function submitDocumentForm() {
-  const id = document.getElementById('docId').value;
-  const title = document.getElementById('docTitle').value;
-  const category = document.getElementById('docCategory').value;
-  const description = document.getElementById('docDescription').value;
-  const fileInput = document.getElementById('docFile');
-  
+  const id = document.getElementById('fDocId').value;
+  const title = document.getElementById('fTitle').value;
+  const category = document.getElementById('fCategory').value;
+  const sub_category = document.getElementById('fSubCategory') ? document.getElementById('fSubCategory').value : '';
+  const document_number = document.getElementById('fDocNumber') ? document.getElementById('fDocNumber').value : '';
+  const institution_name = document.getElementById('fInstitution') ? document.getElementById('fInstitution').value : '';
+  const course_name = document.getElementById('fCourse') ? document.getElementById('fCourse').value : '';
+  const semester = document.getElementById('fSemester') ? document.getElementById('fSemester').value : '';
+  const month = document.getElementById('fMonth') ? document.getElementById('fMonth').value : '';
+  const year = document.getElementById('fYear') ? document.getElementById('fYear').value : '';
+  const receipt_number = document.getElementById('fReceipt') ? document.getElementById('fReceipt').value : '';
+  const issue_date = document.getElementById('fIssueDate') ? document.getElementById('fIssueDate').value : '';
+  const expiry_date = document.getElementById('fExpiryDate') ? document.getElementById('fExpiryDate').value : '';
+  const tags = document.getElementById('fTags') ? document.getElementById('fTags').value : '';
+  const notes = document.getElementById('fNotes') ? document.getElementById('fNotes').value : '';
+  const description = document.getElementById('fDescription') ? document.getElementById('fDescription').value : '';
+  const favorite = document.getElementById('fFavorite') ? document.getElementById('fFavorite').checked : false;
+
+  const fileInput = document.getElementById('fFileInput');
+  const docUrlInput = document.getElementById('fDocUrl');
+
   if (!title || !category) {
     showToast('warning', 'Validation', 'Title and Category are required');
     return;
   }
-  
-  const submitBtn = document.getElementById('saveDocumentBtn');
-  if (submitBtn) submitBtn.disabled = true;
-  
+
+  // Detect which file source is active
+  let isUploadMode = false;
+  const uploadTabBtn = document.querySelector('[data-bs-target="#tabUpload"]');
+  if (uploadTabBtn && uploadTabBtn.classList.contains('active')) {
+    isUploadMode = true;
+  } else if (fileInput && fileInput.files.length > 0) {
+    isUploadMode = true;
+  }
+
+  const saveBtn = document.getElementById('saveDocBtn');
+  if (saveBtn) saveBtn.disabled = true;
+
   try {
-    let drive_file_id = null;
-    let document_url = null;
-    
-    // Check if new file selected
-    if (fileInput && fileInput.files.length > 0) {
+    let drive_file_id = '';
+    let document_url = docUrlInput ? docUrlInput.value.trim() : '';
+
+    if (isUploadMode && fileInput && fileInput.files.length > 0) {
       const file = fileInput.files[0];
       
       // Validation
       const ext = '.' + file.name.split('.').pop().toLowerCase();
       if (!CONFIG.ALLOWED_EXTENSIONS.includes(ext)) {
-        throw new Error('Invalid file type');
+        throw new Error('Invalid file type. Allowed: ' + CONFIG.ALLOWED_EXTENSIONS.join(', '));
       }
       if (file.size > CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024) {
-        throw new Error(`File size exceeds ${CONFIG.MAX_FILE_SIZE_MB}MB`);
+        throw new Error(`File size exceeds limit of ${CONFIG.MAX_FILE_SIZE_MB}MB`);
       }
-      
-      // Upload progress UI
-      const progressContainer = document.getElementById('uploadProgressContainer');
-      const progressBar = document.getElementById('uploadProgressBar');
-      if (progressContainer && progressBar) {
-        progressContainer.style.display = 'block';
-        progressBar.style.width = '10%'; // Start
-      }
-      
+
+      // Show upload progress
+      const progressWrap = document.getElementById('uploadProgressContainer');
+      const progressBar = document.getElementById('uploadProgress');
+      if (progressWrap) progressWrap.classList.remove('d-none');
+      if (progressBar) progressBar.style.width = '30%';
+
       const base64Data = await convertFileToBase64(file);
-      // Strip data:image/...;base64, part
+      if (progressBar) progressBar.style.width = '60%';
       const pureBase64 = base64Data.split(',')[1];
-      
-      if(progressBar) progressBar.style.width = '50%'; // Fake progress
-      
+
       const uploadResponse = await apiRequest('uploadFile', {
-        filename: file.name,
+        base64Data: pureBase64,
         mimeType: file.type,
-        fileData: pureBase64
+        fileName: file.name
       }, 'POST');
-      
-      if(progressBar) progressBar.style.width = '100%';
-      
-      if (!uploadResponse.success) {
+
+      if (progressBar) progressBar.style.width = '100%';
+
+      if (!uploadResponse.success || !uploadResponse.data) {
         throw new Error(uploadResponse.message || 'File upload failed');
       }
+
+      drive_file_id = uploadResponse.data.fileId;
+      document_url = uploadResponse.data.fileUrl;
       
-      drive_file_id = uploadResponse.fileId;
-      document_url = uploadResponse.fileUrl;
+      setTimeout(() => {
+        if (progressWrap) progressWrap.classList.add('d-none');
+        if (progressBar) progressBar.style.width = '0%';
+      }, 1000);
     }
-    
-    const action = id ? 'updateDocument' : 'addDocument';
+
     const payload = {
       title,
       category,
-      description
+      sub_category,
+      document_number,
+      institution_name,
+      course_name,
+      semester,
+      month,
+      year,
+      receipt_number,
+      issue_date,
+      expiry_date,
+      tags,
+      notes,
+      description,
+      favorite,
+      document_url,
+      drive_file_id
     };
-    if (id) payload.id = id;
-    if (drive_file_id) payload.drive_file_id = drive_file_id;
-    if (document_url) payload.document_url = document_url;
+
+    const action = id ? 'updateDocument' : 'addDocument';
     
     showLoading(id ? 'Updating document...' : 'Adding document...');
-    const response = await apiRequest(action, payload, 'POST');
+    const response = await apiRequest(action, { docId: id, data: payload }, 'POST');
     hideLoading();
-    
+
     if (response.success) {
-      showToast('success', 'Success', id ? 'Document updated' : 'Document added');
-      closeAddEditModal();
-      loadDocuments();
+      showToast('success', 'Success', id ? 'Document updated successfully' : 'Document added successfully');
+      
+      // Close modal if on documents page
+      const modalEl = document.getElementById('docFormModal');
+      if (modalEl) {
+        const bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (bsModal) bsModal.hide();
+      }
+      
+      // Reload documents if table exists
+      if (document.getElementById('documentsTableBody')) {
+        loadDocuments();
+      } else {
+        // Redirection on standalone page
+        setTimeout(() => {
+          window.location.href = 'documents.html';
+        }, 1200);
+      }
     } else {
-      throw new Error(response.message || 'Action failed');
+      throw new Error(response.message || 'Saving failed');
     }
-    
   } catch (err) {
-    console.error('Submit form error:', err);
-    showToast('error', 'Error', err.message);
-    hideLoading();
+    console.error(err);
+    showToast('error', 'Error', err.message || 'Failed to save document');
   } finally {
-    if (submitBtn) submitBtn.disabled = false;
+    if (saveBtn) saveBtn.disabled = false;
   }
 }
 

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - DocVault</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #4361ee, #1e2139);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            background: #fff;
+            padding: 2.5rem 2rem;
+            margin: 1rem;
+        }
+        /* theme toggle if any */
+        [data-theme="dark"] .login-card {
+            background: #1e2139;
+            color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card text-center">
+        <div class="mb-4 text-primary">
+            <i class="fa-solid fa-folder-open fa-4x" style="color: #4361ee;"></i>
+        </div>
+        <h2 class="mb-1 fw-bold">DocVault</h2>
+        <p class="text-muted mb-4">Your Personal Document Manager</p>
+        <form id="loginForm">
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light"><i class="fa-solid fa-envelope"></i></span>
+                <input type="email" class="form-control" id="email" placeholder="Email Address" required>
+            </div>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-light"><i class="fa-solid fa-lock"></i></span>
+                <input type="password" class="form-control" id="password" placeholder="Password" required>
+                <button class="btn btn-outline-secondary toggle-pw" type="button" data-target="password"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check text-start">
+                    <input class="form-check-input" type="checkbox" id="rememberMe">
+                    <label class="form-check-label small" for="rememberMe">Remember me</label>
+                </div>
+                <a href="forgot-password.html" class="text-decoration-none small text-primary">Forgot Password?</a>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-4 py-2" id="loginBtn" style="background-color: #4361ee; border-color: #4361ee; border-radius: 8px;">
+                <span class="spinner-border spinner-border-sm d-none me-2" id="loginSpinner" role="status"></span>Login
+            </button>
+        </form>
+        <div class="text-muted small">
+            <i class="fa-solid fa-shield-halved text-success me-1"></i> Secured with encrypted sessions
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof initTheme === 'function') initTheme();
+            if (typeof isLoggedIn === 'function' && isLoggedIn()) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const spinner = document.getElementById('loginSpinner');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            
+            try {
+                if (typeof login === 'function') {
+                    await login(email, password);
+                } else {
+                    console.error('Login function not found in auth.js');
+                }
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        });
+
+        document.querySelectorAll('.toggle-pw').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetId = this.dataset.target;
+                const input = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                if (input.type === 'password') {
+                    input.type = 'text'; icon.className = 'fa-solid fa-eye-slash';
+                } else {
+                    input.type = 'password'; icon.className = 'fa-solid fa-eye';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

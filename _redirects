@@ -1,0 +1,9 @@
+# Netlify _redirects
+# All routes serve themselves (no SPA routing needed for multi-page)
+/index.html    /index.html    200
+/dashboard.html    /dashboard.html    200
+/documents.html    /documents.html    200
+/add-document.html    /add-document.html    200
+/profile.html    /profile.html    200
+/forgot-password.html    /forgot-password.html    200
+/reset-password.html    /reset-password.html    200

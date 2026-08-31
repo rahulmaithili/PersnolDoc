@@ -1,0 +1,581 @@
+// Documents Logic
+
+const state = {
+  documents: [],
+  total: 0,
+  page: 1,
+  pageSize: CONFIG.PAGE_SIZE,
+  filters: {},
+  searchQuery: '',
+  loading: false
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.pathname.includes('documents.html')) {
+    checkAuth();
+    initTheme();
+    initTooltips();
+    initUserAvatar();
+    initSidebar();
+    
+    // Bind global buttons
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+    
+    readURLParams();
+    loadCategories();
+    initYearSelect();
+    
+    initSearchDebounce();
+    initFilterForm();
+    initAddEditModal();
+    
+    loadDocuments();
+  }
+});
+
+// Sidebar initialization (duplicate from dashboard for standalone execution)
+function initSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const toggleBtn = document.getElementById('sidebarToggleBtn');
+  const overlay = document.getElementById('sidebarOverlay');
+  
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-collapsed');
+    });
+  }
+  
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      document.body.classList.remove('sidebar-collapsed');
+    });
+  }
+  
+  const currentPath = window.location.pathname;
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => {
+    const href = item.getAttribute('href');
+    if (href && currentPath.includes(href)) {
+      item.classList.add('active');
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
+
+function readURLParams() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('category')) state.filters.category = params.get('category');
+  if (params.has('favorite')) state.filters.favorite = params.get('favorite') === 'true';
+  if (params.has('sub_category')) state.filters.sub_category = params.get('sub_category');
+}
+
+async function loadDocuments() {
+  state.loading = true;
+  const tbody = document.getElementById('documentsTableBody');
+  if (tbody) {
+    tbody.innerHTML = Array(state.pageSize).fill(`
+      <tr class="skeleton-row">
+        <td><div class="skeleton skeleton-text" style="width: 80%"></div></td>
+        <td><div class="skeleton skeleton-text" style="width: 60%"></div></td>
+        <td><div class="skeleton skeleton-text" style="width: 50%"></div></td>
+        <td><div class="skeleton skeleton-text" style="width: 70%"></div></td>
+        <td><div class="skeleton skeleton-text" style="width: 100%"></div></td>
+      </tr>
+    `).join('');
+  }
+  
+  let action = 'getDocuments';
+  let params = {
+    page: state.page,
+    pageSize: state.pageSize,
+    ...state.filters
+  };
+  
+  if (state.searchQuery) {
+    action = 'searchDocuments';
+    params = { query: state.searchQuery };
+    // Search endpoint might not support pagination cleanly, assume it returns all matches
+  } else if (Object.keys(state.filters).length > 0) {
+    action = 'filterDocuments';
+  }
+  
+  try {
+    const response = await apiRequest(action, params, 'GET');
+    
+    if (response.success) {
+      state.documents = response.documents || [];
+      state.total = response.total || state.documents.length;
+      renderDocumentsTable(state.documents);
+      renderPagination(state.total, state.page, state.pageSize);
+    } else {
+      throw new Error(response.message);
+    }
+  } catch (err) {
+    console.error('Failed to load documents:', err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to load documents</td></tr>`;
+  } finally {
+    state.loading = false;
+  }
+}
+
+function renderDocumentsTable(docs) {
+  const tbody = document.getElementById('documentsTableBody');
+  if (!tbody) return;
+  
+  if (docs.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="empty-state">
+            <i class="fas fa-file-alt empty-icon"></i>
+            <p>No documents found.</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  tbody.innerHTML = docs.map(doc => `
+    <tr>
+      <td>
+        <strong>${doc.title || 'Untitled'}</strong>
+        ${doc.description ? `<br><small class="text-secondary">${doc.description.substring(0, 50)}...</small>` : ''}
+      </td>
+      <td>
+        <span class="badge ${getCategoryBadgeClass(doc.category)}">${doc.category || 'None'}</span>
+      </td>
+      <td>${formatDate(doc.created_at)}</td>
+      <td>
+        <button class="action-btn" title="Toggle Favorite" onclick="toggleFavorite('${doc.id}', ${doc.favorite})">
+          <i class="fa${doc.favorite ? 's text-warning' : 'r'} fa-star"></i>
+        </button>
+      </td>
+      <td>
+        <button class="action-btn" title="View" onclick="openViewModal('${doc.id}')"><i class="fas fa-eye"></i></button>
+        <button class="action-btn" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fas fa-edit"></i></button>
+        <button class="action-btn" title="Download" onclick="downloadDocument('${doc.id}')"><i class="fas fa-download"></i></button>
+        <button class="action-btn" title="Print" onclick="printDocument('${doc.id}')"><i class="fas fa-print"></i></button>
+        <button class="action-btn" title="Copy Link" onclick="copyLink('${doc.id}')"><i class="fas fa-link"></i></button>
+        <button class="action-btn text-danger" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderPagination(total, page, pageSize) {
+  const paginationContainer = document.getElementById('paginationContainer');
+  if (!paginationContainer) return;
+  
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) {
+    paginationContainer.innerHTML = '';
+    return;
+  }
+  
+  let html = `<div style="display:flex; justify-content:center; gap:5px; margin-top:20px;">`;
+  
+  html += `<button class="btn btn-secondary" ${page === 1 ? 'disabled' : ''} onclick="goToPage(${page - 1})">Prev</button>`;
+  
+  for (let i = 1; i <= totalPages; i++) {
+    // Basic implementation: show all pages (ideally should show ellipsis for large numbers)
+    html += `<button class="btn ${i === page ? 'btn-primary' : 'btn-secondary'}" onclick="goToPage(${i})">${i}</button>`;
+  }
+  
+  html += `<button class="btn btn-secondary" ${page === totalPages ? 'disabled' : ''} onclick="goToPage(${page + 1})">Next</button>`;
+  
+  html += `</div>`;
+  paginationContainer.innerHTML = html;
+}
+
+window.goToPage = function(p) {
+  state.page = p;
+  loadDocuments();
+};
+
+function initSearchDebounce() {
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    const debouncedSearch = debounce((val) => {
+      state.searchQuery = val.trim();
+      state.page = 1; // Reset to page 1 on search
+      loadDocuments();
+    }, CONFIG.SEARCH_DEBOUNCE_MS);
+    
+    searchInput.addEventListener('input', (e) => {
+      debouncedSearch(e.target.value);
+    });
+  }
+}
+
+function initFilterForm() {
+  const applyBtn = document.getElementById('applyFilterBtn');
+  const resetBtn = document.getElementById('resetFilterBtn');
+  
+  if (applyBtn) {
+    applyBtn.addEventListener('click', () => {
+      const category = document.getElementById('filterCategory').value;
+      const month = document.getElementById('filterMonth').value;
+      const year = document.getElementById('filterYear').value;
+      
+      state.filters = {};
+      if (category) state.filters.category = category;
+      if (month) state.filters.month = month;
+      if (year) state.filters.year = year;
+      
+      state.page = 1;
+      loadDocuments();
+    });
+  }
+  
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      document.getElementById('filterCategory').value = '';
+      document.getElementById('filterMonth').value = '';
+      document.getElementById('filterYear').value = '';
+      
+      state.filters = {};
+      state.page = 1;
+      loadDocuments();
+    });
+  }
+}
+
+function initYearSelect() {
+  const yearSelect = document.getElementById('filterYear');
+  if (yearSelect) {
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 2010; y--) {
+      const option = document.createElement('option');
+      option.value = y;
+      option.textContent = y;
+      yearSelect.appendChild(option);
+    }
+  }
+}
+
+function loadCategories() {
+  const selects = [document.getElementById('filterCategory'), document.getElementById('docCategory')];
+  
+  selects.forEach(select => {
+    if (select) {
+      // Clear existing options except first
+      while(select.options.length > 1) select.remove(1);
+      
+      CONFIG.CATEGORIES.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+  });
+}
+
+function initAddEditModal() {
+  const form = document.getElementById('documentForm');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await submitDocumentForm();
+    });
+  }
+  
+  const addBtn = document.getElementById('addDocumentBtn');
+  if (addBtn) {
+    addBtn.addEventListener('click', openAddModal);
+  }
+}
+
+window.openAddModal = function() {
+  clearForm();
+  document.getElementById('docId').value = '';
+  document.getElementById('addEditModalTitle').textContent = 'Add Document';
+  
+  const modal = document.getElementById('addEditModal');
+  if (modal) modal.classList.add('show');
+};
+
+window.openEditModal = function(docId) {
+  const doc = state.documents.find(d => String(d.id) === String(docId));
+  if (!doc) {
+    showToast('error', 'Error', 'Document not found');
+    return;
+  }
+  
+  populateEditForm(doc);
+  document.getElementById('addEditModalTitle').textContent = 'Edit Document';
+  
+  const modal = document.getElementById('addEditModal');
+  if (modal) modal.classList.add('show');
+};
+
+window.closeAddEditModal = function() {
+  const modal = document.getElementById('addEditModal');
+  if (modal) modal.classList.remove('show');
+};
+
+function clearForm() {
+  const form = document.getElementById('documentForm');
+  if (form) form.reset();
+  
+  // Hide progress
+  const progressContainer = document.getElementById('uploadProgressContainer');
+  if(progressContainer) progressContainer.style.display = 'none';
+  const progressBar = document.getElementById('uploadProgressBar');
+  if(progressBar) progressBar.style.width = '0%';
+}
+
+function populateEditForm(doc) {
+  clearForm();
+  document.getElementById('docId').value = doc.id;
+  document.getElementById('docTitle').value = doc.title || '';
+  document.getElementById('docCategory').value = doc.category || '';
+  document.getElementById('docDescription').value = doc.description || '';
+  // Note: Cannot populate file input for security reasons
+}
+
+async function submitDocumentForm() {
+  const id = document.getElementById('docId').value;
+  const title = document.getElementById('docTitle').value;
+  const category = document.getElementById('docCategory').value;
+  const description = document.getElementById('docDescription').value;
+  const fileInput = document.getElementById('docFile');
+  
+  if (!title || !category) {
+    showToast('warning', 'Validation', 'Title and Category are required');
+    return;
+  }
+  
+  const submitBtn = document.getElementById('saveDocumentBtn');
+  if (submitBtn) submitBtn.disabled = true;
+  
+  try {
+    let drive_file_id = null;
+    let document_url = null;
+    
+    // Check if new file selected
+    if (fileInput && fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      
+      // Validation
+      const ext = '.' + file.name.split('.').pop().toLowerCase();
+      if (!CONFIG.ALLOWED_EXTENSIONS.includes(ext)) {
+        throw new Error('Invalid file type');
+      }
+      if (file.size > CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024) {
+        throw new Error(`File size exceeds ${CONFIG.MAX_FILE_SIZE_MB}MB`);
+      }
+      
+      // Upload progress UI
+      const progressContainer = document.getElementById('uploadProgressContainer');
+      const progressBar = document.getElementById('uploadProgressBar');
+      if (progressContainer && progressBar) {
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '10%'; // Start
+      }
+      
+      const base64Data = await convertFileToBase64(file);
+      // Strip data:image/...;base64, part
+      const pureBase64 = base64Data.split(',')[1];
+      
+      if(progressBar) progressBar.style.width = '50%'; // Fake progress
+      
+      const uploadResponse = await apiRequest('uploadFile', {
+        filename: file.name,
+        mimeType: file.type,
+        fileData: pureBase64
+      }, 'POST');
+      
+      if(progressBar) progressBar.style.width = '100%';
+      
+      if (!uploadResponse.success) {
+        throw new Error(uploadResponse.message || 'File upload failed');
+      }
+      
+      drive_file_id = uploadResponse.fileId;
+      document_url = uploadResponse.fileUrl;
+    }
+    
+    const action = id ? 'updateDocument' : 'addDocument';
+    const payload = {
+      title,
+      category,
+      description
+    };
+    if (id) payload.id = id;
+    if (drive_file_id) payload.drive_file_id = drive_file_id;
+    if (document_url) payload.document_url = document_url;
+    
+    showLoading(id ? 'Updating document...' : 'Adding document...');
+    const response = await apiRequest(action, payload, 'POST');
+    hideLoading();
+    
+    if (response.success) {
+      showToast('success', 'Success', id ? 'Document updated' : 'Document added');
+      closeAddEditModal();
+      loadDocuments();
+    } else {
+      throw new Error(response.message || 'Action failed');
+    }
+    
+  } catch (err) {
+    console.error('Submit form error:', err);
+    showToast('error', 'Error', err.message);
+    hideLoading();
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+function convertFileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+window.deleteDocument = async function(docId) {
+  const doc = state.documents.find(d => String(d.id) === String(docId));
+  if (!doc) return;
+  
+  if (typeof Swal !== 'undefined') {
+    const result = await Swal.fire({
+      title: 'Delete Document?',
+      text: `Are you sure you want to delete "${doc.title}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    
+    if (result.isConfirmed) {
+      // Prompt for Drive deletion as well
+      const driveResult = await Swal.fire({
+        title: 'Delete from Drive?',
+        text: 'Do you also want to delete the file from Google Drive?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete file too',
+        cancelButtonText: 'No, keep file'
+      });
+      
+      const deleteDriveFile = driveResult.isConfirmed;
+      performDelete(docId, deleteDriveFile);
+    }
+  } else {
+    if (confirm(`Are you sure you want to delete "${doc.title}"?`)) {
+      const deleteDriveFile = confirm("Do you also want to delete the file from Google Drive?");
+      performDelete(docId, deleteDriveFile);
+    }
+  }
+};
+
+async function performDelete(docId, deleteDriveFile) {
+  showLoading('Deleting...');
+  const response = await apiRequest('deleteDocument', { id: docId, deleteDriveFile }, 'POST');
+  hideLoading();
+  
+  if (response.success) {
+    showToast('success', 'Deleted!', 'Document has been deleted.');
+    loadDocuments();
+  } else {
+    showToast('error', 'Error', response.message || 'Failed to delete');
+  }
+}
+
+window.toggleFavorite = async function(docId, currentVal) {
+  showLoading();
+  const response = await apiRequest('toggleFavorite', { id: docId, isFavorite: !currentVal }, 'POST');
+  hideLoading();
+  
+  if (response.success) {
+    showToast('success', 'Success', `Document ${!currentVal ? 'added to' : 'removed from'} favorites`);
+    loadDocuments();
+  } else {
+    showToast('error', 'Error', response.message || 'Failed to update favorite status');
+  }
+};
+
+window.openViewModal = function(docId) {
+  const doc = state.documents.find(d => String(d.id) === String(docId));
+  if (!doc) return;
+  
+  document.getElementById('viewModalTitle').textContent = doc.title;
+  document.getElementById('viewModalCategory').innerHTML = `<span class="badge ${getCategoryBadgeClass(doc.category)}">${doc.category}</span>`;
+  document.getElementById('viewModalDate').textContent = formatDate(doc.created_at);
+  document.getElementById('viewModalDesc').textContent = doc.description || 'No description provided.';
+  
+  const iframe = document.getElementById('viewModalIframe');
+  if (doc.drive_file_id) {
+    iframe.src = `https://drive.google.com/file/d/${doc.drive_file_id}/preview`;
+    iframe.style.display = 'block';
+  } else if (doc.document_url) {
+    iframe.src = doc.document_url;
+    iframe.style.display = 'block';
+  } else {
+    iframe.style.display = 'none';
+  }
+  
+  const modal = document.getElementById('viewModal');
+  if(modal) modal.classList.add('show');
+};
+
+window.closeViewModal = function() {
+  const modal = document.getElementById('viewModal');
+  if(modal) {
+    modal.classList.remove('show');
+    const iframe = document.getElementById('viewModalIframe');
+    if(iframe) iframe.src = '';
+  }
+};
+
+window.downloadDocument = function(docId) {
+  const doc = state.documents.find(d => String(d.id) === String(docId));
+  if (!doc) return;
+  
+  if (doc.document_url) {
+    window.open(doc.document_url, '_blank');
+  } else if (doc.drive_file_id) {
+    window.open(`https://drive.google.com/uc?export=download&id=${doc.drive_file_id}`, '_blank');
+  } else {
+    showToast('info', 'Not Available', 'No file attached to this document.');
+  }
+};
+
+window.printDocument = function(docId) {
+  const doc = state.documents.find(d => String(d.id) === String(docId));
+  if (!doc) return;
+  
+  const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : null);
+  if (url) {
+    window.open(url, '_blank');
+  } else {
+    showToast('info', 'Not Available', 'No file attached to this document.');
+  }
+};
+
+window.copyLink = function(docId) {
+  const doc = state.documents.find(d => String(d.id) === String(docId));
+  if (!doc) return;
+  
+  const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : null);
+  if (url) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('success', 'Link Copied', 'Document link copied to clipboard.');
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+      showToast('error', 'Error', 'Failed to copy link.');
+    });
+  } else {
+    showToast('info', 'Not Available', 'No file attached to this document.');
+  }
+};

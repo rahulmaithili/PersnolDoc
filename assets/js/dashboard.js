@@ -76,9 +76,138 @@ async function loadDashboardStats() {
       countUp(document.getElementById('stat-favs'), counts.favs, 1000);
       countUp(document.getElementById('stat-month'), counts.month, 1000);
       countUp(document.getElementById('stat-others'), counts.others, 1000);
+      
+      // Render Charts
+      renderCharts(counts, docs);
     }
   } catch (err) {
     console.error('Failed to load stats', err);
+  }
+}
+
+let categoryChartInstance = null;
+let uploadHistoryChartInstance = null;
+
+function renderCharts(counts, docs) {
+  // 1. Category Distribution Chart (Doughnut)
+  const categoryCtx = document.getElementById('categoryChart');
+  if (categoryCtx) {
+    if (categoryChartInstance) categoryChartInstance.destroy();
+    
+    const currentTheme = localStorage.getItem(CONFIG.THEME_KEY) || 'light';
+    const isDark = currentTheme === 'dark';
+    const textPrimary = isDark ? '#e0e0e0' : '#2d3436';
+    
+    categoryChartInstance = new Chart(categoryCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['College', 'High School', 'Land Records', 'Certificates', 'Others'],
+        datasets: [{
+          data: [counts.college, counts.school, counts.land, counts.certs, counts.others],
+          backgroundColor: [
+            '#9c27b0', // purple
+            '#ff9800', // orange
+            '#4caf50', // green
+            '#e63946', // red
+            '#ec4899'  // pink
+          ],
+          borderWidth: isDark ? 2 : 1,
+          borderColor: isDark ? '#1a1d2e' : '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: textPrimary,
+              font: { size: 11, family: 'Segoe UI' },
+              padding: 15
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Upload History Chart (Bar Chart for last 6 months)
+  const historyCtx = document.getElementById('uploadHistoryChart');
+  if (historyCtx) {
+    if (uploadHistoryChartInstance) uploadHistoryChartInstance.destroy();
+    
+    const currentTheme = localStorage.getItem(CONFIG.THEME_KEY) || 'light';
+    const isDark = currentTheme === 'dark';
+    const textPrimary = isDark ? '#e0e0e0' : '#2d3436';
+    const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+    
+    // Calculate last 6 months labels & values
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const last6Months = [];
+    const uploadCounts = [0, 0, 0, 0, 0, 0];
+    
+    const d = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const tempDate = new Date(d.getFullYear(), d.getMonth() - i, 1);
+      last6Months.push({
+        name: monthNames[tempDate.getMonth()] + ' ' + tempDate.getFullYear().toString().substr(-2),
+        month: tempDate.getMonth(),
+        year: tempDate.getFullYear()
+      });
+    }
+    
+    // Group upload count
+    docs.forEach(doc => {
+      if (doc.created_at) {
+        const createdDate = new Date(doc.created_at);
+        const m = createdDate.getMonth();
+        const y = createdDate.getFullYear();
+        
+        for (let i = 0; i < 6; i++) {
+          if (last6Months[i].month === m && last6Months[i].year === y) {
+            uploadCounts[i]++;
+            break;
+          }
+        }
+      }
+    });
+    
+    uploadHistoryChartInstance = new Chart(historyCtx, {
+      type: 'bar',
+      data: {
+        labels: last6Months.map(m => m.name),
+        datasets: [{
+          label: 'Documents Uploaded',
+          data: uploadCounts,
+          backgroundColor: '#4361ee',
+          borderRadius: 6,
+          maxBarThickness: 35
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: textPrimary, font: { family: 'Segoe UI', size: 10 } }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: {
+              color: textPrimary,
+              font: { family: 'Segoe UI', size: 10 },
+              stepSize: 1,
+              precision: 0
+            }
+          }
+        }
+      }
+    });
   }
 }
 

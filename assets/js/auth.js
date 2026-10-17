@@ -67,12 +67,12 @@ async function forgotPassword(email) {
     return false;
   }
   
-  showLoading('Sending verification OTP...');
+  showLoading('Sending password reset link...');
   const response = await apiRequest('forgotPassword', { email }, 'POST');
   hideLoading();
   
   if (response.success) {
-    showToast('success', 'OTP Sent', 'A verification OTP has been sent to your email.');
+    showToast('success', 'Link Sent', 'Password reset link has been sent to your email.');
     return true;
   }
   return false;

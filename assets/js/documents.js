@@ -807,6 +807,16 @@ window.openViewModal = async function(docId) {
     infoList.innerHTML = infoHtml;
   }
   
+  // Reset details column visibility on new modal open
+  const detailsCol = document.getElementById('viewDocDetailsCol');
+  const previewCol = document.getElementById('viewDocPreviewCol');
+  const toggleBtn = document.getElementById('toggleDetailsBtn');
+  if (detailsCol && previewCol) {
+    detailsCol.classList.remove('d-none');
+    previewCol.className = 'col-lg-8 col-md-7';
+    if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-solid fa-arrows-left-right me-1"></i><span>Full Preview</span>';
+  }
+
   const previewContainer = document.getElementById('viewDocPreview');
   if (previewContainer) {
     const rawUrl = doc.document_url || '';
@@ -822,20 +832,23 @@ window.openViewModal = async function(docId) {
     const isPdf = fileType === 'application/pdf' || lowerUrl.match(/\.pdf($|\?)/);
 
     if (driveId) {
-      // 1. Google Drive Document / Image / PDF
+      // 1. Google Drive Document / Image / PDF - Full Height
       previewContainer.innerHTML = `
-        <div class="d-flex flex-column h-100">
+        <div class="d-flex flex-column h-100 w-100">
           <div class="d-flex justify-content-between align-items-center mb-2 px-1">
             <span class="small fw-semibold text-secondary">
               <i class="fa-brands fa-google-drive text-primary me-1"></i> In-App Cloud Preview
             </span>
             <div class="btn-group btn-group-sm">
-              <a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-outline-primary btn-sm">
-                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Full
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="togglePreviewDetails()">
+                <i class="fa-solid fa-expand me-1"></i>Full Screen View
+              </button>
+              <a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Drive Tab
               </a>
             </div>
           </div>
-          <div style="position:relative; width:100%; height:460px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:10px; overflow:hidden;">
+          <div style="position:relative; width:100%; height:72vh; min-height:580px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:12px; overflow:hidden;">
             <iframe src="https://drive.google.com/file/d/${driveId}/preview" 
                     style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" 
                     allow="autoplay"
@@ -846,19 +859,20 @@ window.openViewModal = async function(docId) {
       `;
     } else if (rawUrl) {
       if (isImage || rawUrl.startsWith('data:image/')) {
-        // 2. Direct Image Link / Data URL (JPEG, PNG, WEBP, etc.)
+        // 2. Direct Image Link / Data URL (JPEG, PNG, WEBP, etc.) - Full Height
         previewContainer.innerHTML = `
-          <div class="d-flex flex-column align-items-center justify-content-center p-2 rounded" style="min-height:360px; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.06);">
-            <img src="${rawUrl}" class="img-fluid rounded shadow-sm" style="max-height:460px; max-width:100%; object-fit:contain;" alt="${doc.title}" onerror="this.parentElement.innerHTML='<div class=\\'text-center p-4\\'><i class=\\'fa-solid fa-image fa-3x text-secondary mb-2\\'></i><p class=\\'text-muted small\\'>Image could not be rendered directly.</p><a href=\\'${rawUrl}\\' target=\\'_blank\\' class=\\'btn btn-sm btn-primary\\'>Open Image</a></div>';" />
+          <div class="d-flex flex-column align-items-center justify-content-center p-3 rounded w-100" style="min-height:580px; height:72vh; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.06);">
+            <img src="${rawUrl}" class="img-fluid rounded shadow" style="max-height:68vh; max-width:100%; object-fit:contain;" alt="${doc.title}" onerror="this.parentElement.innerHTML='<div class=\\'text-center p-4\\'><i class=\\'fa-solid fa-image fa-3x text-secondary mb-2\\'></i><p class=\\'text-muted small\\'>Image could not be rendered directly.</p><a href=\\'${rawUrl}\\' target=\\'_blank\\' class=\\'btn btn-sm btn-primary\\'>Open Image</a></div>';" />
             <div class="mt-2 text-center">
-              <a href="${rawUrl}" target="_blank" class="small text-decoration-none text-muted"><i class="fa-solid fa-expand me-1"></i>View Full Resolution</a>
+              <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="togglePreviewDetails()"><i class="fa-solid fa-expand me-1"></i>Toggle Full Width</button>
+              <a href="${rawUrl}" target="_blank" class="small text-decoration-none text-muted"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Original Size</a>
             </div>
           </div>
         `;
       } else if (isPdf) {
-        // 3. Direct PDF Embed
+        // 3. Direct PDF Embed - Full Height
         previewContainer.innerHTML = `
-          <div style="position:relative; width:100%; height:460px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:10px; overflow:hidden;">
+          <div style="position:relative; width:100%; height:72vh; min-height:580px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:12px; overflow:hidden;">
             <iframe src="${rawUrl}#toolbar=1" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
           </div>
         `;
@@ -866,8 +880,8 @@ window.openViewModal = async function(docId) {
         // 4. Any other document (Docs, Sheets, web link) via Google Docs Viewer
         const encodedUrl = encodeURIComponent(rawUrl);
         previewContainer.innerHTML = `
-          <div class="d-flex flex-column h-100">
-            <div style="position:relative; width:100%; height:460px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:10px; overflow:hidden;">
+          <div class="d-flex flex-column h-100 w-100">
+            <div style="position:relative; width:100%; height:72vh; min-height:580px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:12px; overflow:hidden;">
               <iframe src="https://docs.google.com/viewer?url=${encodedUrl}&embedded=true" style="width:100%; height:100%; border:none;"></iframe>
             </div>
             <div class="text-center mt-2">
@@ -930,6 +944,35 @@ window.closeViewModal = function() {
   if (modalEl) {
     const bsModal = bootstrap.Modal.getInstance(modalEl);
     if (bsModal) bsModal.hide();
+  }
+};
+
+window.toggleModalFullscreen = function() {
+  const modalEl = document.getElementById('viewDocModal');
+  if (!modalEl) return;
+  const modalDialog = modalEl.querySelector('.modal-dialog');
+  const icon = document.getElementById('modalFullscreenIcon');
+  if (modalDialog) {
+    modalDialog.classList.toggle('modal-fullscreen');
+    const isFull = modalDialog.classList.contains('modal-fullscreen');
+    if (icon) icon.className = isFull ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+  }
+};
+
+window.togglePreviewDetails = function() {
+  const detailsCol = document.getElementById('viewDocDetailsCol');
+  const previewCol = document.getElementById('viewDocPreviewCol');
+  const toggleBtn = document.getElementById('toggleDetailsBtn');
+  if (detailsCol && previewCol) {
+    if (detailsCol.classList.contains('d-none')) {
+      detailsCol.classList.remove('d-none');
+      previewCol.className = 'col-lg-8 col-md-7';
+      if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-solid fa-arrows-left-right me-1"></i><span>Full Preview</span>';
+    } else {
+      detailsCol.classList.add('d-none');
+      previewCol.className = 'col-12';
+      if (toggleBtn) toggleBtn.innerHTML = '<i class="fa-solid fa-table-columns me-1"></i><span>Show Details</span>';
+    }
   }
 };
 

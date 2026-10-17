@@ -263,23 +263,30 @@
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">
+        <h5 class="modal-title d-flex align-items-center">
             <span id="viewDocTitle">Document Title</span> 
             <span class="badge bg-primary ms-2" id="viewDocBadge">Category</span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="toggleDetailsBtn" onclick="togglePreviewDetails()" title="Expand to Full Preview">
+                <i class="fa-solid fa-arrows-left-right me-1"></i><span>Full Preview</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleModalFullscreenBtn" onclick="toggleModalFullscreen()" title="Toggle Fullscreen Window">
+                <i class="fa-solid fa-expand" id="modalFullscreenIcon"></i>
+            </button>
+            <button type="button" class="btn-close ms-1" data-bs-dismiss="modal"></button>
+        </div>
       </div>
-      <div class="modal-body">
-        <div class="row h-100">
-            <div class="col-md-5 border-end">
-                <h6 class="border-bottom pb-2 mb-3">Document Details</h6>
+      <div class="modal-body p-3">
+        <div class="row g-3 h-100">
+            <div class="col-lg-4 col-md-5 border-end" id="viewDocDetailsCol">
+                <h6 class="border-bottom pb-2 mb-3 fw-bold"><i class="fa-solid fa-circle-info me-2 text-primary"></i>Document Details</h6>
                 <div class="small" id="viewDocInfoList">
                     <!-- populated by JS -->
                 </div>
             </div>
-            <div class="col-md-7">
-                <h6 class="border-bottom pb-2 mb-3">Preview</h6>
-                <div id="viewDocPreview" class="w-100 h-100 min-vh-50 d-flex justify-content-center align-items-center bg-light border rounded">
+            <div class="col-lg-8 col-md-7" id="viewDocPreviewCol">
+                <div id="viewDocPreview" class="w-100 h-100 d-flex justify-content-center align-items-center">
                     <!-- populated by JS -->
                 </div>
             </div>

@@ -682,5 +682,35 @@ a { color: var(--primary); text-decoration: none; }
   color: #ffc107 !important;
 }
 
+/* ==========================================
+   ENHANCED IN-APP DOCUMENT PREVIEW MODAL
+   ========================================== */
+#viewDocModal .modal-dialog {
+  max-width: 95vw;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
+@media (min-width: 1400px) {
+  #viewDocModal .modal-dialog:not(.modal-fullscreen) {
+    max-width: 1350px;
+  }
+}
 
+#viewDocModal .modal-dialog.modal-fullscreen {
+  max-width: 100vw !important;
+  margin: 0 !important;
+  height: 100vh !important;
+}
+
+#viewDocModal .modal-dialog.modal-fullscreen .modal-content {
+  height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+#viewDocPreview iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 580px;
+  border: none;
+  border-radius: 8px;
+}

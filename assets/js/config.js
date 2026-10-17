@@ -1,6 +1,9 @@
 // Global configuration
 const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbwX82V318Yt-ncpA_dDRmLjB6UILYVhHiVQqa2OVsk9C79V7Eg-bGQbENrK8YT1XwjhPw/exec',
+  DRIVE_UPLOAD_URL: 'https://script.google.com/macros/s/AKfycbwX82V318Yt-ncpA_dDRmLjB6UILYVhHiVQqa2OVsk9C79V7Eg-bGQbENrK8YT1XwjhPw/exec',
+  SUPABASE_URL: 'https://xmnhrxumklcetanmznax.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_yjKjcdt7hTXWsFXL1GhGBQ_EoJbqogo',
   APP_NAME: 'DocVault',
   VERSION: '1.0.0',
   PAGE_SIZE: 20,

@@ -6,6 +6,10 @@ function checkAuth() {
   }
 }
 
+function isLoggedIn() {
+  return !!getToken();
+}
+
 async function login(email, password) {
   if (!email || !password) {
     showToast('warning', 'Validation', 'Email and password are required');

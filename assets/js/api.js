@@ -1,6 +1,270 @@
-// API Wrapper
+// Supabase Client Initialization
+let supabaseClient = null;
+
+function getSupabase() {
+  if (!supabaseClient && window.supabase && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
+    try {
+      supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage
+        }
+      });
+    } catch (e) {
+      console.error('Supabase initialization error:', e);
+    }
+  }
+  return supabaseClient;
+}
+
+// Unified API Wrapper (Supabase Database + Google Drive File Storage)
 async function apiRequest(action, params = {}, method = 'GET') {
   try {
+    const sb = getSupabase();
+
+    // 1. Google Drive File Storage: Always handled by Google Apps Script backend
+    if (action === 'uploadFile') {
+      const uploadUrl = CONFIG.DRIVE_UPLOAD_URL || CONFIG.API_URL;
+      const user = getUser();
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'uploadFile',
+          base64Data: params.base64Data,
+          mimeType: params.mimeType,
+          fileName: params.fileName,
+          userId: (user && user.id) || 'default_user'
+        })
+      });
+      return await response.json();
+    }
+
+    if (action === 'deleteFile' && params.fileId) {
+      const uploadUrl = CONFIG.DRIVE_UPLOAD_URL || CONFIG.API_URL;
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'deleteFile',
+          fileId: params.fileId
+        })
+      });
+      return await response.json();
+    }
+
+    // 2. Supabase Database Operations
+    if (sb) {
+      switch (action) {
+        case 'login': {
+          const { data, error } = await sb.auth.signInWithPassword({
+            email: params.email,
+            password: params.password
+          });
+          if (error) {
+            // If user doesn't exist, try auto sign up
+            if (error.message && (error.message.includes('Invalid login') || error.message.includes('not found') || error.status === 400)) {
+              const { data: suData, error: suErr } = await sb.auth.signUp({
+                email: params.email,
+                password: params.password,
+                options: { data: { name: params.email.split('@')[0] } }
+              });
+              if (!suErr && suData && suData.user) {
+                if (suData.session) {
+                  const user = {
+                    id: suData.user.id,
+                    email: suData.user.email,
+                    name: suData.user.user_metadata?.name || suData.user.email.split('@')[0],
+                    role: 'admin'
+                  };
+                  setToken(suData.session.access_token);
+                  setUser(user);
+                  return { success: true, data: { token: suData.session.access_token, user } };
+                } else {
+                  return {
+                    success: false,
+                    message: 'Account created! Please check your email to verify, or turn OFF "Confirm email" in Supabase Dashboard.'
+                  };
+                }
+              }
+            }
+            return { success: false, message: error.message };
+          }
+          const user = {
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+            role: data.user.role || 'admin'
+          };
+          setToken(data.session.access_token);
+          setUser(user);
+          return { success: true, data: { token: data.session.access_token, user } };
+        }
+
+        case 'logout': {
+          try { await sb.auth.signOut(); } catch (e) {}
+          clearToken();
+          clearUser();
+          return { success: true, message: 'Logged out' };
+        }
+
+        case 'getProfile': {
+          try {
+            const { data: { user } } = await sb.auth.getUser();
+            if (user) {
+              return {
+                success: true,
+                data: {
+                  id: user.id,
+                  email: user.email,
+                  name: user.user_metadata?.name || user.email.split('@')[0],
+                  role: user.role || 'Admin',
+                  created_at: user.created_at
+                }
+              };
+            }
+          } catch (e) {}
+          const localUser = getUser() || {};
+          return { success: true, data: localUser };
+        }
+
+        case 'updateProfile': {
+          try {
+            await sb.auth.updateUser({ data: { name: params.name } });
+          } catch (e) {}
+          const cur = getUser() || {};
+          cur.name = params.name;
+          setUser(cur);
+          return { success: true, message: 'Profile updated' };
+        }
+
+        case 'changePassword': {
+          const { error } = await sb.auth.updateUser({ password: params.newPassword });
+          if (error) return { success: false, message: error.message };
+          return { success: true, message: 'Password updated successfully' };
+        }
+
+        case 'getDocuments': {
+          let query = sb.from('documents').select('*', { count: 'exact' });
+          if (params.category) query = query.eq('category', params.category);
+          if (params.favorite === true || params.favorite === 'true') query = query.eq('favorite', true);
+
+          const page = parseInt(params.page || 1);
+          const pageSize = parseInt(params.pageSize || 20);
+          const from = (page - 1) * pageSize;
+          const to = from + pageSize - 1;
+
+          query = query.order('created_at', { ascending: false }).range(from, to);
+          const { data, count, error } = await query;
+          if (error) throw error;
+          return {
+            success: true,
+            data: {
+              documents: data || [],
+              total: count !== null ? count : (data ? data.length : 0),
+              page,
+              pageSize
+            }
+          };
+        }
+
+        case 'getDocument': {
+          const { data, error } = await sb.from('documents').select('*').eq('id', params.docId).single();
+          if (error) throw error;
+          return { success: true, data };
+        }
+
+        case 'addDocument': {
+          const docData = { ...params.data };
+          const user = getUser();
+          if (user && user.id) docData.user_id = user.id;
+          docData.created_at = new Date().toISOString();
+          docData.updated_at = new Date().toISOString();
+          const { data, error } = await sb.from('documents').insert([docData]).select().single();
+          if (error) throw error;
+          return { success: true, message: 'Document added successfully', data };
+        }
+
+        case 'updateDocument': {
+          const docData = { ...params.data };
+          delete docData.id;
+          docData.updated_at = new Date().toISOString();
+          const { data, error } = await sb.from('documents').update(docData).eq('id', params.docId).select().single();
+          if (error) throw error;
+          return { success: true, message: 'Document updated successfully', data };
+        }
+
+        case 'deleteDocument': {
+          if (params.deleteDriveFile && params.driveFileId) {
+            try {
+              const uploadUrl = CONFIG.DRIVE_UPLOAD_URL || CONFIG.API_URL;
+              await fetch(uploadUrl, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'deleteFile', fileId: params.driveFileId })
+              });
+            } catch (e) {
+              console.warn('Drive file deletion failed:', e);
+            }
+          }
+          const { error } = await sb.from('documents').delete().eq('id', params.docId);
+          if (error) throw error;
+          return { success: true, message: 'Document deleted successfully' };
+        }
+
+        case 'toggleFavorite': {
+          const { data: cur, error: fetchErr } = await sb.from('documents').select('favorite').eq('id', params.docId).single();
+          if (fetchErr) throw fetchErr;
+          const nextFav = !(cur && cur.favorite);
+          const { error: updErr } = await sb.from('documents').update({ favorite: nextFav }).eq('id', params.docId);
+          if (updErr) throw updErr;
+          return { success: true, data: { favorite: nextFav } };
+        }
+
+        case 'searchDocuments': {
+          const q = `%${params.query}%`;
+          const { data, error } = await sb.from('documents')
+            .select('*')
+            .or(`title.ilike.${q},document_number.ilike.${q},institution_name.ilike.${q},tags.ilike.${q},description.ilike.${q}`)
+            .order('created_at', { ascending: false });
+          if (error) throw error;
+          return { success: true, data: { documents: data || [] } };
+        }
+
+        case 'filterDocuments': {
+          let q = sb.from('documents').select('*');
+          const f = params.filters || {};
+          if (f.category) q = q.eq('category', f.category);
+          if (f.sub_category) q = q.ilike('sub_category', `%${f.sub_category}%`);
+          if (f.semester) q = q.eq('semester', f.semester);
+          if (f.month) q = q.eq('month', f.month);
+          if (f.year) q = q.eq('year', f.year);
+          if (f.favorite) q = q.eq('favorite', true);
+          if (f.date_from) q = q.gte('created_at', f.date_from);
+          if (f.date_to) q = q.lte('created_at', f.date_to + 'T23:59:59.999Z');
+          const isAsc = f.sort === 'oldest';
+          q = q.order('created_at', { ascending: isAsc });
+          const { data, error } = await q;
+          if (error) throw error;
+          return { success: true, data: { documents: data || [] } };
+        }
+
+        case 'getCategories': {
+          const { data, error } = await sb.from('categories').select('*').order('name');
+          if (!error && data && data.length > 0) {
+            return { success: true, data };
+          }
+          return { success: true, data: CONFIG.CATEGORIES.map(c => ({ name: c, icon: 'fa-folder' })) };
+        }
+
+        case 'addCategory': {
+          const { data, error } = await sb.from('categories').insert([{ name: params.name, icon: params.icon || 'fa-folder' }]).select().single();
+          if (error) throw error;
+          return { success: true, data };
+        }
+      }
+    }
+
+    // Fallback to Google Apps Script endpoint if Supabase is unavailable
     let url = CONFIG.API_URL;
     let options = { method };
 
@@ -8,7 +272,6 @@ async function apiRequest(action, params = {}, method = 'GET') {
       const searchParams = new URLSearchParams();
       searchParams.append('action', action);
       if (getToken()) searchParams.append('token', getToken());
-      
       for (const key in params) {
         if (params.hasOwnProperty(key)) {
           searchParams.append(key, params[key]);
@@ -21,34 +284,17 @@ async function apiRequest(action, params = {}, method = 'GET') {
         token: getToken(),
         ...params
       });
-      // options.headers = { 'Content-Type': 'application/json' };
     }
 
     const response = await fetch(url, options);
-    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     const data = await response.json();
-    
-    if (data.success === false) {
-      if (data.message === 'Invalid or expired session' || data.message === 'Authentication required') {
-        clearToken();
-        clearUser();
-        showToast('error', 'Session Expired', 'Please login again.');
-        setTimeout(() => {
-          window.location.href = 'index.html';
-        }, 1500);
-        return data;
-      }
-      showToast('error', 'Error', data.message || 'An error occurred');
-    }
-    
     return data;
   } catch (error) {
     console.error('API Request Error:', error);
-    showToast('error', 'Network Error', 'Failed to connect to the server.');
+    showToast('error', 'Error', error.message || 'Failed to complete request.');
     return { success: false, message: error.message };
   }
 }

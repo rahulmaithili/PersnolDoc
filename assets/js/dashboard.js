@@ -81,6 +81,13 @@ async function loadDashboardStats() {
       // Render Charts
       renderCharts(counts, docs);
 
+      // Cache docs globally for instant 0ms preview modal opening
+      if (!window.cachedDocs) window.cachedDocs = {};
+      docs.forEach(d => { if (d && d.id) window.cachedDocs[String(d.id)] = d; });
+      if (typeof state !== 'undefined' && state) {
+        state.documents = docs;
+      }
+
       // Instantly render recent docs from the already fetched docs (0ms delay!)
       renderRecentDocsTable(docs.slice(0, 5));
     }
@@ -281,6 +288,8 @@ async function loadRecentDocuments() {
     const response = await apiRequest('getDocuments', { page: 1, pageSize: 5 }, 'GET');
     if (response.success) {
       const docs = response.documents || (response.data && response.data.documents) || [];
+      if (!window.cachedDocs) window.cachedDocs = {};
+      docs.forEach(d => { if (d && d.id) window.cachedDocs[String(d.id)] = d; });
       renderRecentDocsTable(docs);
     }
   } catch (err) {

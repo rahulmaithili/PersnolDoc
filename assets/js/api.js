@@ -408,7 +408,19 @@ function showLoading(message = 'Processing...') {
 
 function hideLoading() {
   if (typeof Swal !== 'undefined') {
-    Swal.close();
+    try {
+      Swal.close();
+    } catch (e) {}
+    setTimeout(() => {
+      try {
+        if (Swal.isVisible && Swal.isVisible()) Swal.close();
+      } catch (e) {}
+    }, 120);
+    setTimeout(() => {
+      try {
+        if (Swal.isVisible && Swal.isVisible()) Swal.close();
+      } catch (e) {}
+    }, 350);
   }
 }
 

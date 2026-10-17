@@ -950,16 +950,40 @@ window.toggleFavorite = async function(docId, currentVal) {
 };
 
 window.openViewModal = async function(docId) {
-  let doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
+  hideLoading();
   
+  let doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
+  if (!doc && window.cachedDocs && window.cachedDocs[String(docId)]) {
+    doc = window.cachedDocs[String(docId)];
+  }
+  
+  const modalEl = document.getElementById('viewDocModal');
+  const bsModal = modalEl ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+
   if (!doc) {
-    showLoading('Loading document...');
+    if (bsModal) {
+      document.getElementById('viewDocTitle').textContent = 'Loading Document...';
+      const previewContainer = document.getElementById('viewDocPreview');
+      if (previewContainer) {
+        previewContainer.innerHTML = `
+          <div class="d-flex flex-column align-items-center justify-content-center p-5 w-100" style="min-height:480px; height:60vh;">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 2.8rem; height: 2.8rem;"></div>
+            <p class="text-secondary small fw-medium">Loading document preview...</p>
+          </div>
+        `;
+      }
+      bsModal.show();
+    }
+    
     const response = await apiRequest('getDocument', { docId }, 'GET');
-    hideLoading();
     if (response.success && response.data) {
       doc = response.data;
+      if (!window.cachedDocs) window.cachedDocs = {};
+      window.cachedDocs[String(docId)] = doc;
     }
   }
+  
+  hideLoading();
   
   if (!doc) {
     showToast('error', 'Error', 'Document not found');
@@ -1135,7 +1159,7 @@ window.openViewModal = async function(docId) {
   
   const modalEl = document.getElementById('viewDocModal');
   if (modalEl) {
-    const bsModal = new bootstrap.Modal(modalEl);
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
     bsModal.show();
   }
 };

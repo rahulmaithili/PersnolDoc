@@ -335,23 +335,222 @@ function initYearSelect() {
   }
 }
 
-function loadCategories() {
-  const selects = [document.getElementById('filterCategory'), document.getElementById('docCategory')];
-  
-  selects.forEach(select => {
-    if (select) {
-      // Clear existing options except first
-      while(select.options.length > 1) select.remove(1);
-      
-      CONFIG.CATEGORIES.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        select.appendChild(option);
+window.loadCategories = async function() {
+  const defaultList = [
+    { name: 'College', icon: 'fa-graduation-cap' },
+    { name: 'High School', icon: 'fa-school' },
+    { name: 'Semester Records', icon: 'fa-book-open' },
+    { name: 'Land Records', icon: 'fa-map' },
+    { name: 'Certificates', icon: 'fa-certificate' },
+    { name: 'Others', icon: 'fa-folder' }
+  ];
+
+  let catMap = new Map();
+  defaultList.forEach(c => catMap.set(c.name, c.icon));
+
+  // 1. Read custom categories from localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('dv_custom_categories') || '[]');
+    if (Array.isArray(saved)) {
+      saved.forEach(item => {
+        const name = typeof item === 'string' ? item : item.name;
+        const icon = typeof item === 'object' && item.icon ? item.icon : 'fa-folder';
+        if (name && !catMap.has(name)) {
+          catMap.set(name, icon);
+        }
       });
     }
+  } catch (e) {}
+
+  // 2. Fetch from Supabase / API
+  try {
+    const res = await apiRequest('getCategories', {}, 'GET');
+    if (res && res.success && Array.isArray(res.data)) {
+      res.data.forEach(item => {
+        const name = typeof item === 'string' ? item : item.name;
+        const icon = typeof item === 'object' && item.icon ? item.icon : 'fa-folder';
+        if (name && !catMap.has(name)) {
+          catMap.set(name, icon);
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('Error fetching categories from API:', err);
+  }
+
+  const categoryNames = Array.from(catMap.keys());
+
+  // 3. Populate all category dropdown selects on the page
+  const selects = [
+    document.getElementById('fCategory'),
+    document.getElementById('filterCategory'),
+    document.getElementById('docCategory')
+  ];
+
+  selects.forEach(select => {
+    if (select) {
+      const currentVal = select.value;
+      const firstOptText = (select.options[0] && select.options[0].text) || 'Select Category';
+      select.innerHTML = `<option value="">${firstOptText}</option>`;
+      
+      categoryNames.forEach(catName => {
+        const opt = document.createElement('option');
+        opt.value = catName;
+        opt.textContent = catName;
+        select.appendChild(opt);
+      });
+
+      if (currentVal && categoryNames.includes(currentVal)) {
+        select.value = currentVal;
+      }
+    }
   });
+
+  // 4. Dynamically update Sidebar CATEGORIES menu
+  updateSidebarCategories(catMap);
+
+  return categoryNames;
+};
+
+function updateSidebarCategories(catMap) {
+  const sidebarCategoryMenu = document.getElementById('sidebarCategoryMenu');
+  if (!sidebarCategoryMenu) return;
+
+  const currentUrl = window.location.href;
+  const currentCategory = new URLSearchParams(window.location.search).get('category');
+
+  let html = '';
+  catMap.forEach((icon, name) => {
+    const isActive = currentCategory === name;
+    html += `
+      <li>
+        <a href="documents.html?category=${encodeURIComponent(name)}" 
+           class="sidebar-link ${isActive ? 'active' : ''}" 
+           data-bs-toggle="tooltip" 
+           data-bs-placement="right" 
+           title="${name}">
+          <i class="fa-solid ${icon}"></i>
+          <span>${name}</span>
+        </a>
+      </li>
+    `;
+  });
+
+  // Favorites Link
+  const isFavActive = new URLSearchParams(window.location.search).get('favorite') === 'true';
+  html += `
+    <li>
+      <a href="documents.html?favorite=true" 
+         class="sidebar-link ${isFavActive ? 'active' : ''}" 
+         data-bs-toggle="tooltip" 
+         data-bs-placement="right" 
+         title="Favorites">
+        <i class="fa-solid fa-star"></i>
+        <span>Favorites</span>
+      </a>
+    </li>
+  `;
+
+  // "+ Add Custom Category" Button
+  html += `
+    <li class="mt-1">
+      <a href="#" 
+         class="sidebar-link text-primary fw-semibold" 
+         onclick="promptAddCategory(); return false;" 
+         data-bs-toggle="tooltip" 
+         data-bs-placement="right" 
+         title="Add Custom Category">
+        <i class="fa-solid fa-plus-circle text-primary"></i>
+        <span>+ Add Category</span>
+      </a>
+    </li>
+  `;
+
+  sidebarCategoryMenu.innerHTML = html;
+  if (typeof initTooltips === 'function') initTooltips();
 }
+
+window.promptAddCategory = async function(preselectTargetId = 'fCategory') {
+  if (typeof Swal === 'undefined') {
+    const name = prompt('Enter new category name:');
+    if (name) addNewCategory(name.trim(), 'fa-folder', preselectTargetId);
+    return;
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title: '<i class="fa-solid fa-folder-plus text-primary me-2"></i>Add Custom Category',
+    html: `
+      <div class="text-start mt-2">
+        <label class="form-label small fw-semibold">Category Name</label>
+        <input id="swal-cat-name" class="form-control mb-3" placeholder="e.g. Vehicle, Medical, Bank, Tax" autofocus required>
+        <label class="form-label small fw-semibold">Category Icon</label>
+        <select id="swal-cat-icon" class="form-select">
+          <option value="fa-folder">📁 Folder (Default)</option>
+          <option value="fa-id-card">🪪 ID Cards & Passports</option>
+          <option value="fa-car">🚗 Vehicle & Transport</option>
+          <option value="fa-heart-pulse">🩺 Medical & Health</option>
+          <option value="fa-building-columns">🏛️ Banking & Finance</option>
+          <option value="fa-receipt">🧾 Bills & Tax Receipts</option>
+          <option value="fa-house">🏠 Property & House</option>
+          <option value="fa-briefcase">💼 Employment & Work</option>
+          <option value="fa-file-shield">🛡️ Insurance & Legal</option>
+          <option value="fa-graduation-cap">🎓 Education / Degree</option>
+          <option value="fa-star">⭐ Important / Priority</option>
+        </select>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="fa-solid fa-plus me-1"></i>Create Category',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#4361ee',
+    focusConfirm: false,
+    preConfirm: () => {
+      const name = document.getElementById('swal-cat-name').value.trim();
+      const icon = document.getElementById('swal-cat-icon').value;
+      if (!name) {
+        Swal.showValidationMessage('Please enter a category name');
+        return false;
+      }
+      return { name, icon };
+    }
+  });
+
+  if (formValues && formValues.name) {
+    await addNewCategory(formValues.name, formValues.icon, preselectTargetId);
+  }
+};
+
+window.addNewCategory = async function(name, icon = 'fa-folder', preselectTargetId = 'fCategory') {
+  showLoading('Saving category...');
+
+  // 1. Immediately cache in localStorage
+  try {
+    let saved = JSON.parse(localStorage.getItem('dv_custom_categories') || '[]');
+    if (!saved.some(c => (typeof c === 'string' ? c : c.name).toLowerCase() === name.toLowerCase())) {
+      saved.push({ name, icon });
+      localStorage.setItem('dv_custom_categories', JSON.stringify(saved));
+    }
+  } catch (e) {}
+
+  // 2. Persist to Supabase / Backend API
+  try {
+    await apiRequest('addCategory', { name, icon }, 'POST');
+  } catch (e) {
+    console.warn('API addCategory error:', e);
+  }
+  hideLoading();
+
+  // 3. Reload categories everywhere
+  await loadCategories();
+
+  // 4. Auto-select in form if dropdown is open
+  const target = document.getElementById(preselectTargetId);
+  if (target) {
+    target.value = name;
+  }
+
+  showToast('success', 'Category Created', `Category "${name}" added successfully!`);
+};
 
 function initAddEditModal() {
   const form = document.getElementById('docForm');

@@ -27,8 +27,13 @@
       <li><a href="dashboard.html" class="sidebar-link active" data-bs-toggle="tooltip" data-bs-placement="right" title="Dashboard"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></a></li>
       <li><a href="documents.html" class="sidebar-link" data-bs-toggle="tooltip" data-bs-placement="right" title="All Documents"><i class="fa-solid fa-copy"></i><span>All Documents</span></a></li>
     </ul>
-    <div class="sidebar-section-label">CATEGORIES</div>
-    <ul class="sidebar-menu">
+    <div class="sidebar-section-label d-flex justify-content-between align-items-center pe-3">
+      <span>CATEGORIES</span>
+      <button type="button" class="btn btn-link btn-sm p-0 text-white-50" onclick="promptAddCategory()" title="Add Custom Category">
+        <i class="fa-solid fa-plus-circle"></i>
+      </button>
+    </div>
+    <ul class="sidebar-menu" id="sidebarCategoryMenu">
       <li><a href="documents.html?category=College" class="sidebar-link" data-bs-toggle="tooltip" data-bs-placement="right" title="College"><i class="fa-solid fa-graduation-cap"></i><span>College</span></a></li>
       <li><a href="documents.html?category=High+School" class="sidebar-link" data-bs-toggle="tooltip" data-bs-placement="right" title="High School"><i class="fa-solid fa-school"></i><span>High School</span></a></li>
       <li><a href="documents.html?category=Semester+Records" class="sidebar-link" data-bs-toggle="tooltip" data-bs-placement="right" title="Semester Records"><i class="fa-solid fa-book-open"></i><span>Semester Records</span></a></li>

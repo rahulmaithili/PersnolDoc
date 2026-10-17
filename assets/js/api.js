@@ -270,17 +270,25 @@ async function apiRequest(action, params = {}, method = 'GET') {
         }
 
         case 'getCategories': {
-          const { data, error } = await sb.from('categories').select('*').order('name');
-          if (!error && data && data.length > 0) {
-            return { success: true, data };
+          try {
+            const { data, error } = await sb.from('categories').select('*').order('name');
+            if (!error && data && data.length > 0) {
+              return { success: true, data };
+            }
+          } catch (e) {
+            console.warn('getCategories error:', e);
           }
           return { success: true, data: CONFIG.CATEGORIES.map(c => ({ name: c, icon: 'fa-folder' })) };
         }
 
         case 'addCategory': {
-          const { data, error } = await sb.from('categories').insert([{ name: params.name, icon: params.icon || 'fa-folder' }]).select().single();
-          if (error) throw error;
-          return { success: true, data };
+          try {
+            const { data, error } = await sb.from('categories').insert([{ name: params.name, icon: params.icon || 'fa-folder' }]).select().single();
+            if (!error && data) return { success: true, data };
+          } catch (e) {
+            console.warn('addCategory remote error, using local fallback:', e);
+          }
+          return { success: true, data: { name: params.name, icon: params.icon || 'fa-folder' } };
         }
       }
     }

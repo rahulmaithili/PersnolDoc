@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTooltips();
     initUserAvatar();
     initSidebar();
+    if (typeof loadCategories === 'function') loadCategories();
     
     // Bind dark mode toggle
     const themeBtn = document.getElementById('themeToggleBtn');

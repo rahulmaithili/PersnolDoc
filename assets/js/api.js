@@ -186,9 +186,14 @@ async function apiRequest(action, params = {}, method = 'GET') {
 
         case 'resetPassword': {
           if (params.otp && params.otp.trim() !== '') {
+            let tokenStr = params.otp.trim();
+            if (tokenStr.includes('token=')) {
+              const m = tokenStr.match(/token=([^&#\s]+)/);
+              if (m) tokenStr = decodeURIComponent(m[1]);
+            }
             const { error: verifyErr } = await sb.auth.verifyOtp({
               email: params.email,
-              token: params.otp.trim(),
+              token: tokenStr,
               type: 'recovery'
             });
             if (verifyErr) {

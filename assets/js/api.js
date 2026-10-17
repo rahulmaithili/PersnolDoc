@@ -193,6 +193,8 @@ async function apiRequest(action, params = {}, method = 'GET') {
 
         case 'addDocument': {
           const docData = { ...params.data };
+          if (!docData.issue_date || docData.issue_date.trim?.() === '') docData.issue_date = null;
+          if (!docData.expiry_date || docData.expiry_date.trim?.() === '') docData.expiry_date = null;
           const user = getUser();
           if (user && user.id) docData.user_id = user.id;
           docData.created_at = new Date().toISOString();
@@ -205,6 +207,8 @@ async function apiRequest(action, params = {}, method = 'GET') {
         case 'updateDocument': {
           const docData = { ...params.data };
           delete docData.id;
+          if (!docData.issue_date || docData.issue_date.trim?.() === '') docData.issue_date = null;
+          if (!docData.expiry_date || docData.expiry_date.trim?.() === '') docData.expiry_date = null;
           docData.updated_at = new Date().toISOString();
           const { data, error } = await sb.from('documents').update(docData).eq('id', params.docId).select().single();
           if (error) throw error;

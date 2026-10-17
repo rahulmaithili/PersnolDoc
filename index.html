@@ -452,6 +452,12 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initLoginTheme();
+
+            // If Supabase redirects recovery token to root
+            if (window.location.hash && window.location.hash.includes('type=recovery')) {
+                window.location.href = 'reset-password.html' + window.location.hash;
+                return;
+            }
             
             // Check if already authenticated
             if (typeof isLoggedIn === 'function' && isLoggedIn()) {

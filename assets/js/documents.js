@@ -585,6 +585,16 @@ async function submitDocumentForm() {
       }, 1000);
     }
 
+    if (document_url && !drive_file_id) {
+      const driveMatch = document_url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                         document_url.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                         document_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/) ||
+                         document_url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (driveMatch) {
+        drive_file_id = driveMatch[1];
+      }
+    }
+
     const payload = {
       title,
       category,
@@ -799,30 +809,79 @@ window.openViewModal = async function(docId) {
   
   const previewContainer = document.getElementById('viewDocPreview');
   if (previewContainer) {
-    if (doc.drive_file_id) {
+    const rawUrl = doc.document_url || '';
+    const driveMatch = rawUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                       rawUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                       rawUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/) ||
+                       rawUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/) ||
+                       rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    const driveId = doc.drive_file_id || (driveMatch ? driveMatch[1] : null);
+    const lowerUrl = rawUrl.toLowerCase();
+    const fileType = (doc.file_type || '').toLowerCase();
+    const isImage = fileType.startsWith('image/') || lowerUrl.match(/\.(jpeg|jpg|gif|png|webp|svg|bmp)($|\?)/);
+    const isPdf = fileType === 'application/pdf' || lowerUrl.match(/\.pdf($|\?)/);
+
+    if (driveId) {
+      // 1. Google Drive Document / Image / PDF
       previewContainer.innerHTML = `
-        <iframe src="https://drive.google.com/file/d/${doc.drive_file_id}/preview" style="width:100%; height:450px; border:none; border-radius:6px;"></iframe>
+        <div class="d-flex flex-column h-100">
+          <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+            <span class="small fw-semibold text-secondary">
+              <i class="fa-brands fa-google-drive text-primary me-1"></i> In-App Cloud Preview
+            </span>
+            <div class="btn-group btn-group-sm">
+              <a href="https://drive.google.com/file/d/${driveId}/view" target="_blank" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Full
+              </a>
+            </div>
+          </div>
+          <div style="position:relative; width:100%; height:460px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:10px; overflow:hidden;">
+            <iframe src="https://drive.google.com/file/d/${driveId}/preview" 
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;" 
+                    allow="autoplay"
+                    allowfullscreen>
+            </iframe>
+          </div>
+        </div>
       `;
-    } else if (doc.document_url) {
-      const url = doc.document_url;
-      const lowerUrl = url.toLowerCase();
-      if (lowerUrl.match(/\.(jpeg|jpg|gif|png|webp)/)) {
-        previewContainer.innerHTML = `<img src="${url}" class="img-fluid rounded" style="max-height:450px;" alt="Preview"/>`;
-      } else {
+    } else if (rawUrl) {
+      if (isImage || rawUrl.startsWith('data:image/')) {
+        // 2. Direct Image Link / Data URL (JPEG, PNG, WEBP, etc.)
         previewContainer.innerHTML = `
-          <div class="text-center p-4">
-            <i class="fa-solid fa-file-pdf fa-4x text-danger mb-3"></i>
-            <h6>External Link Attached</h6>
-            <p class="text-secondary small">Cannot display iframe preview for external URL. Click below to open original link.</p>
-            <a href="${url}" target="_blank" class="btn btn-sm btn-primary mt-2"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open in New Tab</a>
+          <div class="d-flex flex-column align-items-center justify-content-center p-2 rounded" style="min-height:360px; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.06);">
+            <img src="${rawUrl}" class="img-fluid rounded shadow-sm" style="max-height:460px; max-width:100%; object-fit:contain;" alt="${doc.title}" onerror="this.parentElement.innerHTML='<div class=\\'text-center p-4\\'><i class=\\'fa-solid fa-image fa-3x text-secondary mb-2\\'></i><p class=\\'text-muted small\\'>Image could not be rendered directly.</p><a href=\\'${rawUrl}\\' target=\\'_blank\\' class=\\'btn btn-sm btn-primary\\'>Open Image</a></div>';" />
+            <div class="mt-2 text-center">
+              <a href="${rawUrl}" target="_blank" class="small text-decoration-none text-muted"><i class="fa-solid fa-expand me-1"></i>View Full Resolution</a>
+            </div>
+          </div>
+        `;
+      } else if (isPdf) {
+        // 3. Direct PDF Embed
+        previewContainer.innerHTML = `
+          <div style="position:relative; width:100%; height:460px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:10px; overflow:hidden;">
+            <iframe src="${rawUrl}#toolbar=1" style="width:100%; height:100%; border:none;" allowfullscreen></iframe>
+          </div>
+        `;
+      } else {
+        // 4. Any other document (Docs, Sheets, web link) via Google Docs Viewer
+        const encodedUrl = encodeURIComponent(rawUrl);
+        previewContainer.innerHTML = `
+          <div class="d-flex flex-column h-100">
+            <div style="position:relative; width:100%; height:460px; background:#f8fafc; border:1px solid rgba(0,0,0,0.08); border-radius:10px; overflow:hidden;">
+              <iframe src="https://docs.google.com/viewer?url=${encodedUrl}&embedded=true" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
+            <div class="text-center mt-2">
+              <a href="${rawUrl}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Open Original Document</a>
+            </div>
           </div>
         `;
       }
     } else {
       previewContainer.innerHTML = `
-        <div class="text-center p-4">
-          <i class="fa-solid fa-eye-slash fa-3x text-muted opacity-50 mb-3"></i>
-          <p class="text-secondary small mb-0">No preview available for this document.</p>
+        <div class="text-center p-5">
+          <i class="fa-solid fa-file-circle-xmark fa-3x text-secondary opacity-50 mb-3"></i>
+          <h6 class="fw-semibold">No File Attached</h6>
+          <p class="text-secondary small mb-0">No document file or URL was attached to this record.</p>
         </div>
       `;
     }
@@ -836,7 +895,10 @@ window.openViewModal = async function(docId) {
   
   if (btnCopy) btnCopy.onclick = () => copyLink(doc.id);
   if (btnOpen) btnOpen.onclick = () => {
-    const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : '');
+    const rawUrl = doc.document_url || '';
+    const driveMatch = rawUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || rawUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    const driveId = doc.drive_file_id || (driveMatch ? driveMatch[1] : null);
+    const url = rawUrl || (driveId ? `https://drive.google.com/file/d/${driveId}/view` : '');
     if (url) window.open(url, '_blank');
     else showToast('info', 'Not Available', 'No link available');
   };
@@ -879,10 +941,16 @@ window.downloadDocument = async function(docId) {
   }
   if (!doc) return;
   
-  if (doc.document_url) {
+  const rawUrl = doc.document_url || '';
+  const driveMatch = rawUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+                     rawUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+                     rawUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  const driveId = doc.drive_file_id || (driveMatch ? driveMatch[1] : null);
+
+  if (driveId) {
+    window.open(`https://drive.google.com/uc?export=download&id=${driveId}`, '_blank');
+  } else if (doc.document_url) {
     window.open(doc.document_url, '_blank');
-  } else if (doc.drive_file_id) {
-    window.open(`https://drive.google.com/uc?export=download&id=${doc.drive_file_id}`, '_blank');
   } else {
     showToast('info', 'Not Available', 'No file attached to this document.');
   }

@@ -374,7 +374,7 @@ async function apiRequest(action, params = {}, method = 'GET') {
   }
 }
 
-// SweetAlert2 wrappers
+// SweetAlert2 Premium Wrappers
 function showToast(icon, title, message = '') {
   if (typeof Swal !== 'undefined') {
     Swal.fire({
@@ -384,7 +384,7 @@ function showToast(icon, title, message = '') {
       title: title,
       text: message,
       showConfirmButton: false,
-      timer: 3000,
+      timer: 3200,
       timerProgressBar: true
     });
   } else {
@@ -392,11 +392,13 @@ function showToast(icon, title, message = '') {
   }
 }
 
-function showLoading(message = 'Loading...') {
+function showLoading(message = 'Processing...') {
   if (typeof Swal !== 'undefined') {
     Swal.fire({
       title: message,
+      html: '<div style="color:var(--text-secondary);font-size:0.85rem;margin-top:8px;">Please wait a moment...</div>',
       allowOutsideClick: false,
+      showConfirmButton: false,
       didOpen: () => {
         Swal.showLoading();
       }

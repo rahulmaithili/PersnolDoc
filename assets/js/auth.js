@@ -33,13 +33,15 @@ async function login(email, password) {
 async function logout() {
   if (typeof Swal !== 'undefined') {
     const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You will be logged out of your session.",
+      title: 'Sign Out?',
+      text: "You will be securely logged out of your DocVault session.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, log me out!'
+      customClass: {
+        confirmButton: 'btn-danger-confirm'
+      },
+      confirmButtonText: '<i class="fa-solid fa-sign-out-alt me-2"></i>Yes, Log Out',
+      cancelButtonText: 'Cancel'
     });
     
     if (result.isConfirmed) {

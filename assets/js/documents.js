@@ -870,23 +870,25 @@ window.deleteDocument = async function(docId) {
   if (typeof Swal !== 'undefined') {
     const result = await Swal.fire({
       title: 'Delete Document?',
-      text: `Are you sure you want to delete "${doc.title}"?`,
+      text: `Are you sure you want to permanently delete "${doc.title}"?`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete it!'
+      customClass: {
+        confirmButton: 'btn-danger-confirm'
+      },
+      confirmButtonText: '<i class="fa-solid fa-trash me-2"></i>Delete',
+      cancelButtonText: 'Cancel'
     });
     
     if (result.isConfirmed) {
       // Prompt for Drive deletion as well
       const driveResult = await Swal.fire({
         title: 'Delete from Drive?',
-        text: 'Do you also want to delete the file from Google Drive?',
+        text: 'Do you also want to remove this file permanently from Google Drive storage?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Yes, delete file too',
-        cancelButtonText: 'No, keep file'
+        confirmButtonText: '<i class="fa-solid fa-cloud-arrow-down me-1"></i>Delete from Drive',
+        cancelButtonText: 'Keep in Drive'
       });
       
       const deleteDriveFile = driveResult.isConfirmed;

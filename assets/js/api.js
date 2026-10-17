@@ -156,9 +156,50 @@ async function apiRequest(action, params = {}, method = 'GET') {
         }
 
         case 'changePassword': {
+          let email = getUser()?.email;
+          if (!email) {
+            const { data: uData } = await sb.auth.getUser();
+            email = uData?.user?.email;
+          }
+          if (email && params.currentPassword) {
+            const { error: signInErr } = await sb.auth.signInWithPassword({
+              email: email,
+              password: params.currentPassword
+            });
+            if (signInErr) {
+              return { success: false, message: 'Current password is incorrect.' };
+            }
+          }
           const { error } = await sb.auth.updateUser({ password: params.newPassword });
           if (error) return { success: false, message: error.message };
           return { success: true, message: 'Password updated successfully' };
+        }
+
+        case 'forgotPassword': {
+          const siteUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '') + '/reset-password.html';
+          const { data, error } = await sb.auth.resetPasswordForEmail(params.email, {
+            redirectTo: siteUrl
+          });
+          if (error) return { success: false, message: error.message };
+          return { success: true, message: 'A password reset link / OTP code has been sent to your email.' };
+        }
+
+        case 'resetPassword': {
+          if (params.otp && params.otp.trim() !== '') {
+            const { error: verifyErr } = await sb.auth.verifyOtp({
+              email: params.email,
+              token: params.otp.trim(),
+              type: 'recovery'
+            });
+            if (verifyErr) {
+              return { success: false, message: verifyErr.message || 'Invalid or expired OTP code.' };
+            }
+          }
+          const { error: pwErr } = await sb.auth.updateUser({
+            password: params.newPassword
+          });
+          if (pwErr) return { success: false, message: pwErr.message };
+          return { success: true, message: 'Password has been reset successfully!' };
         }
 
         case 'getDocuments': {

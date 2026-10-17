@@ -79,10 +79,6 @@ async function forgotPassword(email) {
 }
 
 async function resetPassword(email, otp, newPassword, confirmPassword) {
-  if (!otp) {
-    showToast('warning', 'Validation', 'OTP is required');
-    return false;
-  }
   if (newPassword !== confirmPassword) {
     showToast('warning', 'Validation', 'Passwords do not match');
     return false;
@@ -90,6 +86,19 @@ async function resetPassword(email, otp, newPassword, confirmPassword) {
   if (newPassword.length < 8) {
     showToast('warning', 'Validation', 'Password must be at least 8 characters');
     return false;
+  }
+  if (!otp) {
+    let hasSession = false;
+    if (typeof sb !== 'undefined' && sb) {
+      try {
+        const { data } = await sb.auth.getSession();
+        if (data && data.session) hasSession = true;
+      } catch (err) {}
+    }
+    if (!hasSession) {
+      showToast('warning', 'Validation', 'OTP code or reset link is required');
+      return false;
+    }
   }
   
   showLoading('Resetting password...');

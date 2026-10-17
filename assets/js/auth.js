@@ -120,19 +120,17 @@ async function updateProfile(name, profile_photo) {
   if (name !== undefined) params.name = name;
   if (profile_photo !== undefined) params.profile_photo = profile_photo;
   
-  const response = await apiRequest('updateProfile', { data: params }, 'POST');
+  const response = await apiRequest('updateProfile', { data: params, name, profile_photo }, 'POST');
   hideLoading();
   
   if (response.success) {
-    const user = getUser();
-    if (user) {
-      if (name !== undefined) user.name = name;
-      if (profile_photo !== undefined) user.profile_photo = profile_photo;
-      setUser(user);
-      initUserAvatar();
-    }
+    const user = getUser() || {};
+    if (name !== undefined) user.name = name;
+    if (profile_photo !== undefined) user.profile_photo = profile_photo;
+    setUser(user);
+    initUserAvatar();
     showToast('success', 'Success', 'Profile updated successfully');
-    return response.data;
+    return response.data || user;
   }
   return null;
 }
@@ -155,12 +153,18 @@ function initUserAvatar() {
     
     const avatarEls = document.querySelectorAll('.user-avatar-img');
     avatarEls.forEach(el => {
-      if (user.profile_photo) {
+      const initial = (user.name || 'U').charAt(0).toUpperCase();
+      const fallbackUrl = `https://ui-avatars.com/api/?name=${initial}&background=4361ee&color=fff`;
+      
+      el.onerror = function() {
+        this.onerror = null;
+        this.src = fallbackUrl;
+      };
+      
+      if (user.profile_photo && user.profile_photo.trim() !== '') {
         el.src = user.profile_photo;
       } else {
-        // Generate initial avatar
-        const initial = (user.name || 'U').charAt(0).toUpperCase();
-        el.src = `https://ui-avatars.com/api/?name=${initial}&background=4361ee&color=fff`;
+        el.src = fallbackUrl;
       }
     });
   }

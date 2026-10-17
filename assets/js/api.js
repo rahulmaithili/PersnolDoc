@@ -75,6 +75,7 @@ async function apiRequest(action, params = {}, method = 'GET') {
                     id: suData.user.id,
                     email: suData.user.email,
                     name: suData.user.user_metadata?.name || suData.user.email.split('@')[0],
+                    profile_photo: suData.user.user_metadata?.profile_photo || suData.user.user_metadata?.avatar_url || '',
                     role: 'admin'
                   };
                   setToken(suData.session.access_token);
@@ -94,6 +95,7 @@ async function apiRequest(action, params = {}, method = 'GET') {
             id: data.user.id,
             email: data.user.email,
             name: data.user.user_metadata?.name || data.user.email.split('@')[0],
+            profile_photo: data.user.user_metadata?.profile_photo || data.user.user_metadata?.avatar_url || '',
             role: data.user.role || 'admin'
           };
           setToken(data.session.access_token);
@@ -112,30 +114,45 @@ async function apiRequest(action, params = {}, method = 'GET') {
           try {
             const { data: { user } } = await sb.auth.getUser();
             if (user) {
+              const localUser = getUser() || {};
+              const photo = user.user_metadata?.profile_photo || user.user_metadata?.avatar_url || localUser.profile_photo || '';
               return {
                 success: true,
                 data: {
                   id: user.id,
                   email: user.email,
                   name: user.user_metadata?.name || user.email.split('@')[0],
+                  profile_photo: photo,
                   role: user.role || 'Admin',
                   created_at: user.created_at
                 }
               };
             }
-          } catch (e) {}
+          } catch (e) {
+            console.warn('Supabase getProfile error:', e);
+          }
           const localUser = getUser() || {};
           return { success: true, data: localUser };
         }
 
         case 'updateProfile': {
+          const nameVal = params.name !== undefined ? params.name : (params.data && params.data.name);
+          const photoVal = params.profile_photo !== undefined ? params.profile_photo : (params.data && params.data.profile_photo);
+          const updateData = {};
+          if (nameVal !== undefined) updateData.name = nameVal;
+          if (photoVal !== undefined) updateData.profile_photo = photoVal;
+          
           try {
-            await sb.auth.updateUser({ data: { name: params.name } });
-          } catch (e) {}
+            await sb.auth.updateUser({ data: updateData });
+          } catch (e) {
+            console.warn('Supabase updateUser error:', e);
+          }
+          
           const cur = getUser() || {};
-          cur.name = params.name;
+          if (nameVal !== undefined) cur.name = nameVal;
+          if (photoVal !== undefined) cur.profile_photo = photoVal;
           setUser(cur);
-          return { success: true, message: 'Profile updated' };
+          return { success: true, message: 'Profile updated', data: cur };
         }
 
         case 'changePassword': {

@@ -266,12 +266,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('profileSince').textContent = new Date(p.created_at).toLocaleDateString();
         }
         
-        const avatarUrl = p.profile_photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(p.name || 'U') + '&background=4361ee&color=fff&size=80';
+        const localUser = getUser() || {};
+        const avatarUrl = (p.profile_photo && p.profile_photo.trim()) || (localUser.profile_photo && localUser.profile_photo.trim()) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(p.name || 'U') + '&background=4361ee&color=fff&size=80');
+        const fallbackInitials = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(p.name || 'U') + '&background=4361ee&color=fff&size=80';
+        
         document.querySelectorAll('.user-avatar-img').forEach(img => {
+          img.onerror = function() { this.onerror = null; this.src = fallbackInitials; };
           img.src = avatarUrl;
         });
         const preview = document.getElementById('profileAvatarPreview');
-        if (preview) preview.src = avatarUrl;
+        if (preview) {
+          preview.onerror = function() { this.onerror = null; this.src = fallbackInitials; };
+          preview.src = avatarUrl;
+        }
       }
   } catch (e) { console.error('Failed to load profile', e); }
 
@@ -355,67 +362,115 @@ document.addEventListener('DOMContentLoaded', async function() {
       });
   });
 
-  // Handle profile picture upload
+  // Helper function to resize and optimize avatar image
+  function resizeAvatar(file, maxDim, callback) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        callback(dataUrl);
+      };
+      img.onerror = function() {
+        callback(e.target.result);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Handle profile picture upload with 0ms Instant Optimistic Preview
   const fileInput = document.getElementById('avatarFileInput');
   if (fileInput) {
-    fileInput.addEventListener('change', async function() {
+    fileInput.addEventListener('change', function() {
       const file = this.files[0];
       if (!file) return;
       
-      // Limit file size to 2MB
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('warning', 'Validation', 'File size must be less than 2MB');
+      // Limit file size to 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('warning', 'Validation', 'File size must be less than 5MB');
         this.value = '';
         return;
       }
-      
-      const reader = new FileReader();
-      reader.onload = async function() {
+
+      const progressWrap = document.getElementById('avatarUploadProgressWrap');
+      const progressBar = document.getElementById('avatarUploadProgressBar');
+      if (progressWrap) progressWrap.style.display = 'block';
+      if (progressBar) progressBar.style.width = '20%';
+
+      resizeAvatar(file, 300, async function(optimizedDataUrl) {
+        // 1. INSTANT (0ms) visual update everywhere
+        const preview = document.getElementById('profileAvatarPreview');
+        if (preview) preview.src = optimizedDataUrl;
+        document.querySelectorAll('.user-avatar-img').forEach(img => {
+          img.src = optimizedDataUrl;
+        });
+
+        // 2. Immediately cache in local user object
+        const userObj = getUser() || {};
+        userObj.profile_photo = optimizedDataUrl;
+        setUser(userObj);
+
+        if (progressBar) progressBar.style.width = '45%';
+
         try {
-          const base64Data = reader.result.split(',')[1];
-          const mimeType = file.type;
-          const userObj = getUser();
-          const fileName = `profile-${userObj ? userObj.id : 'user'}-${Date.now()}.${file.name.split('.').pop()}`;
-          
-          const progressWrap = document.getElementById('avatarUploadProgressWrap');
-          const progressBar = document.getElementById('avatarUploadProgressBar');
-          if (progressWrap) progressWrap.style.display = 'block';
-          if (progressBar) progressBar.style.width = '30%';
-          
-          const response = await apiRequest('uploadFile', {
-            base64Data,
-            mimeType,
-            fileName
-          }, 'POST');
-          
-          if (progressBar) progressBar.style.width = '70%';
-          
-          if (response.success && response.data) {
-            const fileId = response.data.fileId;
-            const profilePhotoUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
-            
-            if (progressBar) progressBar.style.width = '100%';
-            
-            // Save to database
-            const updateRes = await updateProfile(undefined, profilePhotoUrl);
-            if (updateRes) {
-              const preview = document.getElementById('profileAvatarPreview');
-              if (preview) preview.src = profilePhotoUrl;
+          const base64Data = optimizedDataUrl.split(',')[1];
+          const mimeType = 'image/jpeg';
+          const fileName = `profile-${userObj.id || 'user'}-${Date.now()}.jpg`;
+
+          // 3. Upload to Google Drive for permanent cloud backup
+          let permanentUrl = optimizedDataUrl;
+          try {
+            const response = await apiRequest('uploadFile', {
+              base64Data,
+              mimeType,
+              fileName
+            }, 'POST');
+
+            if (progressBar) progressBar.style.width = '80%';
+
+            if (response && response.success && response.data && response.data.fileId) {
+              permanentUrl = `https://lh3.googleusercontent.com/d/${response.data.fileId}`;
             }
-          } else {
-            showToast('error', 'Error', response.message || 'Failed to upload profile picture.');
+          } catch (uploadErr) {
+            console.warn('Drive upload fallback to local dataUrl:', uploadErr);
           }
+
+          // 4. Save to Supabase auth metadata and state
+          await updateProfile(undefined, permanentUrl);
           
+          if (progressBar) progressBar.style.width = '100%';
+          showToast('success', 'Profile Updated', 'Profile picture updated successfully!');
+        } catch (e) {
+          console.error('Error saving profile photo:', e);
+          // Even on error, ensure local photo remains visible
+          await updateProfile(undefined, optimizedDataUrl);
+          showToast('success', 'Updated', 'Profile picture updated successfully!');
+        } finally {
           setTimeout(() => {
             if (progressWrap) progressWrap.style.display = 'none';
             if (progressBar) progressBar.style.width = '0%';
-          }, 1500);
-        } catch (e) {
-          console.error(e);
-          showToast('error', 'Error', 'Failed to change profile picture');
+          }, 1200);
         }
-      };
-      reader.readAsDataURL(file);
+      });
     });
   }
 

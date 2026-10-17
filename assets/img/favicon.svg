@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4361ee"/>
+      <stop offset="100%" stop-color="#3a0ca3"/>
+    </linearGradient>
+    <linearGradient id="folderBack" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3851d0"/>
+      <stop offset="100%" stop-color="#283b99"/>
+    </linearGradient>
+    <linearGradient id="folderFront" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4cc9f0"/>
+      <stop offset="45%" stop-color="#4361ee"/>
+      <stop offset="100%" stop-color="#3f37c9"/>
+    </linearGradient>
+    <linearGradient id="docGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#ff9f1c"/>
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="docShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="112" ry="112" fill="url(#bgGrad)" filter="url(#dropShadow)" />
+  <rect x="25" y="25" width="462" height="462" rx="111" ry="111" fill="none" stroke="rgba(255, 255, 255, 0.25)" stroke-width="2.5" />
+
+  <!-- Back Folder Body and Tab -->
+  <path d="M 104 200 C 104 186 115 174 128 174 L 210 174 C 222 174 232 181 238 190 L 254 212 L 384 212 C 398 212 408 223 408 236 L 408 348 C 408 362 397 372 384 372 L 128 372 C 114 372 104 362 104 348 Z" fill="url(#folderBack)" opacity="0.95" />
+
+  <!-- Document Popping Up Inside -->
+  <g filter="url(#docShadow)">
+    <rect x="168" y="132" width="176" height="180" rx="14" ry="14" fill="url(#docGrad)" />
+    <path d="M 314 132 L 344 162 L 314 162 Z" fill="#cbd5e1" />
+    <rect x="194" y="172" width="112" height="12" rx="6" fill="#4361ee" opacity="0.9" />
+    <rect x="194" y="198" width="124" height="10" rx="5" fill="#94a3b8" />
+    <rect x="194" y="220" width="96" height="10" rx="5" fill="#94a3b8" />
+    <rect x="194" y="242" width="118" height="10" rx="5" fill="#94a3b8" />
+  </g>
+
+  <!-- Front Folder Flap -->
+  <path d="M 88 248 C 88 236 98 226 110 226 L 402 226 C 414 226 424 236 424 248 L 400 376 C 398 388 388 396 376 396 L 136 396 C 124 396 114 388 112 376 Z" fill="url(#folderFront)" />
+  <path d="M 110 226 L 402 226" stroke="rgba(255, 255, 255, 0.45)" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Security Vault Shield Badge -->
+  <g transform="translate(256, 318)">
+    <path d="M 0 -28 C 16 -28 26 -22 26 -10 C 26 16 0 34 0 34 C 0 34 -26 16 -26 -10 C -26 -22 -16 -28 0 -28 Z" fill="#ffffff" opacity="0.95" />
+    <path d="M 0 -24 C 13 -24 21 -19 21 -8 C 21 13 0 28 0 28 C 0 28 -21 13 -21 -8 C -21 -19 -13 -24 0 -24 Z" fill="url(#goldGrad)" />
+    <circle cx="0" cy="-3" r="5" fill="#ffffff" />
+    <path d="M -3 -1 L 3 -1 L 4 10 L -4 10 Z" fill="#ffffff" />
+  </g>
+</svg>

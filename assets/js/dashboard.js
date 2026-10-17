@@ -68,17 +68,20 @@ async function loadDashboardStats() {
       });
       
       // Update DOM with animation
-      countUp(document.getElementById('stat-total'), counts.total, 1000);
-      countUp(document.getElementById('stat-college'), counts.college, 1000);
-      countUp(document.getElementById('stat-school'), counts.school, 1000);
-      countUp(document.getElementById('stat-land'), counts.land, 1000);
-      countUp(document.getElementById('stat-certs'), counts.certs, 1000);
-      countUp(document.getElementById('stat-favs'), counts.favs, 1000);
-      countUp(document.getElementById('stat-month'), counts.month, 1000);
-      countUp(document.getElementById('stat-others'), counts.others, 1000);
+      countUp(document.getElementById('stat-total'), counts.total, 800);
+      countUp(document.getElementById('stat-college'), counts.college, 800);
+      countUp(document.getElementById('stat-school'), counts.school, 800);
+      countUp(document.getElementById('stat-land'), counts.land, 800);
+      countUp(document.getElementById('stat-certs'), counts.certs, 800);
+      countUp(document.getElementById('stat-favs'), counts.favs, 800);
+      countUp(document.getElementById('stat-month'), counts.month, 800);
+      countUp(document.getElementById('stat-others'), counts.others, 800);
       
       // Render Charts
       renderCharts(counts, docs);
+
+      // Instantly render recent docs from the already fetched docs (0ms delay!)
+      renderRecentDocsTable(docs.slice(0, 5));
     }
   } catch (err) {
     console.error('Failed to load stats', err);
@@ -211,10 +214,55 @@ function renderCharts(counts, docs) {
   }
 }
 
-async function loadRecentDocuments() {
+function renderRecentDocsTable(docs) {
   const tbody = document.getElementById('recentDocsBody');
   const emptyEl = document.getElementById('recentDocsEmpty');
   if (!tbody) return;
+  
+  if (!docs || docs.length === 0) {
+    tbody.innerHTML = '';
+    if (emptyEl) emptyEl.classList.remove('d-none');
+    return;
+  }
+  
+  if (emptyEl) emptyEl.classList.add('d-none');
+  
+  tbody.innerHTML = docs.map((doc, index) => {
+    const title = doc.title || 'Untitled';
+    const category = doc.category || 'Others';
+    const sub_category = doc.sub_category ? `<br><small class="text-secondary">${doc.sub_category}</small>` : '';
+    const year = doc.year || '—';
+    const added = formatDate(doc.created_at);
+    const badgeClass = getCategoryBadgeClass(category);
+    
+    return `
+      <tr>
+        <td>${index + 1}</td>
+        <td>
+          <span class="fw-semibold">${title}</span>
+          ${sub_category}
+        </td>
+        <td><span class="badge ${badgeClass}">${category}</span></td>
+        <td>${year}</td>
+        <td>${added}</td>
+        <td>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="View" onclick="openViewModal('${doc.id}')"><i class="fa-solid fa-eye text-info"></i></button>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fa-solid fa-pencil text-warning"></i></button>
+          <button class="btn-icon-action" data-bs-toggle="tooltip" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fa-solid fa-trash text-danger"></i></button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  if (typeof initTooltips === 'function') initTooltips();
+}
+
+async function loadRecentDocuments() {
+  const tbody = document.getElementById('recentDocsBody');
+  if (!tbody || (tbody.children.length > 0 && !tbody.querySelector('.skeleton-row'))) {
+    // Already populated by loadDashboardStats!
+    return;
+  }
   
   // Show skeleton
   tbody.innerHTML = Array(3).fill(`
@@ -230,47 +278,9 @@ async function loadRecentDocuments() {
   
   try {
     const response = await apiRequest('getDocuments', { page: 1, pageSize: 5 }, 'GET');
-    
     if (response.success) {
       const docs = response.documents || (response.data && response.data.documents) || [];
-      
-      if (docs.length === 0) {
-        tbody.innerHTML = '';
-        if (emptyEl) emptyEl.classList.remove('d-none');
-        return;
-      }
-      
-      if (emptyEl) emptyEl.classList.add('d-none');
-      
-      tbody.innerHTML = docs.map((doc, index) => {
-        const title = doc.title || 'Untitled';
-        const category = doc.category || 'Others';
-        const sub_category = doc.sub_category ? `<br><small class="text-secondary">${doc.sub_category}</small>` : '';
-        const year = doc.year || '—';
-        const added = formatDate(doc.created_at);
-        const badgeClass = getCategoryBadgeClass(category);
-        
-        return `
-          <tr>
-            <td>${index + 1}</td>
-            <td>
-              <span class="fw-semibold">${title}</span>
-              ${sub_category}
-            </td>
-            <td><span class="badge ${badgeClass}">${category}</span></td>
-            <td>${year}</td>
-            <td>${added}</td>
-            <td>
-              <button class="btn-icon-action" data-bs-toggle="tooltip" title="View" onclick="openViewModal('${doc.id}')"><i class="fa-solid fa-eye text-info"></i></button>
-              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Edit" onclick="openEditModal('${doc.id}')"><i class="fa-solid fa-pencil text-warning"></i></button>
-              <button class="btn-icon-action" data-bs-toggle="tooltip" title="Delete" onclick="deleteDocument('${doc.id}')"><i class="fa-solid fa-trash text-danger"></i></button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-      
-      // Initialize tooltips
-      if (typeof initTooltips === 'function') initTooltips();
+      renderRecentDocsTable(docs);
     }
   } catch (err) {
     console.error('Failed to load recent docs', err);

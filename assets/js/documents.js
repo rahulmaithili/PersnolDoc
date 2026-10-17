@@ -626,13 +626,13 @@ async function submitDocumentForm() {
       }
       
       // Reload documents if table exists
-      if (document.getElementById('documentsTableBody')) {
+      if (document.getElementById('documentsBody')) {
         loadDocuments();
       } else {
         // Redirection on standalone page
         setTimeout(() => {
           window.location.href = 'documents.html';
-        }, 1200);
+        }, 800);
       }
     } else {
       throw new Error(response.message || 'Saving failed');
@@ -705,19 +705,36 @@ async function performDelete(docId, deleteDriveFile) {
 }
 
 window.toggleFavorite = async function(docId, currentVal) {
-  showLoading();
-  const response = await apiRequest('toggleFavorite', { docId: docId, isFavorite: !currentVal }, 'POST');
-  hideLoading();
+  const newVal = !currentVal;
   
-  if (response.success) {
-    showToast('success', 'Success', `Document ${!currentVal ? 'added to' : 'removed from'} favorites`);
-    if (document.getElementById('documentsBody')) {
-      loadDocuments();
-    } else if (typeof loadRecentDocuments === 'function') {
-      loadRecentDocuments();
+  // 1. Optimistic Update in State
+  const doc = state.documents ? state.documents.find(d => String(d.id) === String(docId)) : null;
+  if (doc) doc.favorite = newVal;
+  
+  // 2. Optimistic Update in DOM (0ms instant visual feedback)
+  document.querySelectorAll(`[data-fav-id="${docId}"]`).forEach(btn => {
+    if (newVal) {
+      btn.classList.add('active');
+      btn.querySelector('i').style.color = '#ffc107';
+    } else {
+      btn.classList.remove('active');
+      btn.querySelector('i').style.color = '';
     }
-  } else {
-    showToast('error', 'Error', response.message || 'Failed to update favorite status');
+  });
+
+  // 3. Background API request without blocking full-screen loading
+  try {
+    const response = await apiRequest('toggleFavorite', { docId: docId, isFavorite: newVal }, 'POST');
+    if (response.success) {
+      showToast('success', 'Favorite Updated', `Document ${newVal ? 'added to' : 'removed from'} favorites`);
+    } else {
+      throw new Error(response.message);
+    }
+  } catch (err) {
+    // Revert if failed
+    if (doc) doc.favorite = currentVal;
+    showToast('error', 'Error', 'Failed to update favorite status');
+    if (document.getElementById('documentsBody')) loadDocuments();
   }
 };
 
@@ -897,14 +914,36 @@ window.copyLink = async function(docId) {
   
   const url = doc.document_url || (doc.drive_file_id ? `https://drive.google.com/file/d/${doc.drive_file_id}/view` : null);
   if (url) {
-    navigator.clipboard.writeText(url).then(() => {
-      showToast('success', 'Link Copied', 'Document link copied to clipboard.');
-    }).catch(err => {
-      console.error('Could not copy text: ', err);
-      showToast('error', 'Error', 'Failed to copy link.');
-    });
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('success', 'Link Copied', 'Document link copied to clipboard.');
+      }).catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
   } else {
     showToast('info', 'Not Available', 'No file attached to this document.');
+  }
+
+  function fallbackCopy(text) {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        showToast('success', 'Link Copied', 'Document link copied to clipboard.');
+      } else {
+        prompt('Copy link manually:', text);
+      }
+    } catch (e) {
+      prompt('Copy link manually:', text);
+    }
   }
 };
 

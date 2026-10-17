@@ -186,18 +186,54 @@ a { color: var(--primary); text-decoration: none; }
 [data-theme="dark"] .table>:not(caption)>*>* { background:var(--card-bg); color:var(--text-primary); border-color:var(--border); }
 [data-theme="dark"] .breadcrumb-item { color:var(--text-secondary); }
 
-/* Responsive */
+/* Responsive Enhancements for All Mobile & Tablet Devices */
 @media (max-width: 991px) {
   .sidebar { transform: translateX(-100%); width: var(--sidebar-width) !important; }
   .sidebar.mobile-open { transform: translateX(0); }
   .sidebar-collapse-btn { display: none; }
   .top-navbar { left: 0 !important; }
-  .main-content { margin-left: 0 !important; }
+  .main-content { 
+    margin-left: 0 !important; 
+    padding: 16px 14px 85px 14px !important; /* Clear room for mobile bottom nav */
+  }
+  .modal-dialog {
+    margin: 8px auto !important;
+    max-width: 96% !important;
+  }
+  .btn-icon-action {
+    padding: 6px 8px !important;
+    min-width: 32px;
+    min-height: 32px;
+  }
 }
+
+@media (max-width: 768px) {
+  /* Prevent iOS & Android zoom jump on input focus */
+  .form-control, .form-select, input, select, textarea {
+    font-size: 16px !important;
+  }
+  .stat-card {
+    padding: 14px;
+  }
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.15rem;
+  }
+  .stat-value {
+    font-size: 1.5rem !important;
+  }
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+}
+
 @media (max-width: 576px) {
-  .main-content { padding: 16px; }
-  .stat-value { font-size: 1.5rem; }
+  .main-content { padding: 12px 10px 85px 10px !important; }
+  .stat-value { font-size: 1.35rem !important; }
   .theme-panel { width: 100vw; }
+  .modal-body { padding: 12px !important; }
 }
 
 /* Badges */

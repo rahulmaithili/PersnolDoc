@@ -1157,9 +1157,7 @@ window.openViewModal = async function(docId) {
     }
   };
   
-  const modalEl = document.getElementById('viewDocModal');
-  if (modalEl) {
-    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  if (bsModal) {
     bsModal.show();
   }
 };

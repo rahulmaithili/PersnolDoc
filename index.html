@@ -453,9 +453,13 @@
         document.addEventListener('DOMContentLoaded', () => {
             initLoginTheme();
 
-            // If Supabase redirects recovery token to root
-            if (window.location.hash && window.location.hash.includes('type=recovery')) {
-                window.location.href = 'reset-password.html' + window.location.hash;
+            // If Supabase redirects recovery token or PKCE code to root login page
+            const hasRecoveryHash = window.location.hash && (window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token='));
+            const urlParams = new URLSearchParams(window.location.search);
+            const hasCode = urlParams.has('code');
+            
+            if (hasRecoveryHash || hasCode) {
+                window.location.href = 'reset-password.html' + window.location.search + window.location.hash;
                 return;
             }
             

@@ -298,11 +298,20 @@ function initSidebar() {
   const collapseBtn = document.getElementById('sidebarCollapseBtn');
   const collapseIcon = document.getElementById('collapseIcon');
 
-  // Toggle mobile drawer
+  // Toggle mobile drawer or desktop sidebar
   if (toggleBtn && sidebar) {
     toggleBtn.addEventListener('click', () => {
-      sidebar.classList.toggle('mobile-open');
-      if (overlay) overlay.classList.toggle('active');
+      if (window.innerWidth < 992) {
+        sidebar.classList.toggle('mobile-open');
+        if (overlay) overlay.classList.toggle('active');
+      } else {
+        document.body.classList.toggle('sidebar-collapsed');
+        const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+        localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+        if (collapseIcon) {
+          collapseIcon.className = isCollapsed ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
+        }
+      }
     });
   }
 
